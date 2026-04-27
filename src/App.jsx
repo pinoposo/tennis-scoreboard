@@ -840,6 +840,13 @@ export default function App() {
     [brandingSettings, selectedEvent]
   );
 
+  const previewLogoSrc = useMemo(() => {
+    if (logoFile) return URL.createObjectURL(logoFile);
+    if (eventLogoUrlInput) return eventLogoUrlInput;
+    if (selectedBrandingObj?.logo_url) return selectedBrandingObj.logo_url;
+    return null;
+  }, [logoFile, eventLogoUrlInput, selectedBrandingObj]);
+
   const filteredCourts = useMemo(() => {
     return courts.filter((c) => String(c.event_id) === String(selectedEvent));
   }, [courts, selectedEvent]);
@@ -1217,10 +1224,73 @@ export default function App() {
               </div>
 
               <div style={styles.previewRow}>
-                <div style={styles.previewBox}>
-                  <div style={styles.previewKicker}>{monitorTitle || "LIVE SCOREBOARD"}</div>
-                  <div style={styles.previewTitle}>{eventTitleInput || "Turniername"}</div>
-                  <div style={styles.previewSub}>{monitorSubtitle || eventSubtitleInput || "Monitor Vorschau"}</div>
+                <div
+                  style={{
+                    ...styles.previewBox,
+                    background:
+                      backgroundStyle === "gradient"
+                        ? `linear-gradient(135deg, ${backgroundColor} 0%, ${accentColor} 100%)`
+                        : backgroundColor,
+                    color: textColor,
+                    border: `2px solid ${borderColor}`,
+                    boxShadow: `0 0 22px ${hexToRgba(borderColor, 0.28)}`,
+                  }}
+                >
+                  <div style={styles.previewHeader}>
+                    {previewLogoSrc ? (
+                      <img
+                        src={previewLogoSrc}
+                        alt="Logo Vorschau"
+                        style={styles.previewLogo}
+                        onError={(e) => (e.currentTarget.style.display = "none")}
+                      />
+                    ) : (
+                      <div style={styles.previewLogoFallback}>TS</div>
+                    )}
+
+                    <div>
+                      <div style={{ ...styles.previewKicker, color: primaryColor }}>
+                        LIVE TENNIS CONTROL
+                      </div>
+
+                      <div style={{ ...styles.previewTitle, color: textColor }}>
+                        {eventTitleInput || "Turniername"}
+                      </div>
+
+                      <div
+                        style={{
+                          ...styles.previewSub,
+                          color: hexToRgba(textColor, 0.78),
+                        }}
+                      >
+                        {monitorSubtitle || eventSubtitleInput || "Monitor Vorschau"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={styles.previewMiniNav}>
+                    <span
+                      style={{
+                        ...styles.previewPill,
+                        borderColor,
+                        color: textColor,
+                        background: hexToRgba(borderColor, 0.18),
+                      }}
+                    >
+                      Alle Matches
+                    </span>
+
+                    <span
+                      style={{
+                        ...styles.previewPill,
+                        borderColor: accentColor,
+                        color: accentColor,
+                        background: hexToRgba(accentColor, 0.18),
+                      }}
+                    >
+                      LIVE
+                    </span>
+                  </div>
                 </div>
 
                 {selectedBrandingObj?.logo_url ? (
@@ -1700,6 +1770,44 @@ const styles = {
     borderRadius: 18,
     background: "linear-gradient(135deg, rgba(4,12,31,0.96), rgba(18,30,61,0.92))",
     border: "1px solid rgba(107,231,255,0.18)",
+  },
+  previewHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+  },
+  previewLogo: {
+    width: 72,
+    height: 72,
+    borderRadius: 14,
+    objectFit: "contain",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.16)",
+    padding: 6,
+  },
+  previewLogoFallback: {
+    width: 72,
+    height: 72,
+    borderRadius: 14,
+    display: "grid",
+    placeItems: "center",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.16)",
+    fontWeight: 900,
+  },
+  previewMiniNav: {
+    display: "flex",
+    gap: 10,
+    marginTop: 18,
+    flexWrap: "wrap",
+  },
+  previewPill: {
+    display: "inline-block",
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid",
+    fontWeight: 900,
+    fontSize: 13,
   },
   previewKicker: { color: "#00ff9d", fontWeight: 900, letterSpacing: 2, fontSize: 12 },
   previewTitle: { marginTop: 8, fontSize: 28, fontWeight: 900 },
