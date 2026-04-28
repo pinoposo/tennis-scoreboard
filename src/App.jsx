@@ -1134,15 +1134,17 @@ function PlayerQRPage() {
   const courtId = params.get("court");
 
   const [match, setMatch] = useState(null);
+  const [eventName, setEventName] = useState("");
+  const [courtName, setCourtName] = useState("");
   const [loadingMatch, setLoadingMatch] = useState(true);
   const [playerMessage, setPlayerMessage] = useState("");
   const [savingScore, setSavingScore] = useState(false);
 
   useEffect(() => {
-    loadMatchForCourt();
+    loadPlayerPageData();
   }, [eventId, courtId]);
 
-  async function loadMatchForCourt() {
+  async function loadPlayerPageData() {
     setLoadingMatch(true);
     setPlayerMessage("");
 
@@ -1152,30 +1154,46 @@ function PlayerQRPage() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("matches")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("court_id", courtId)
-      .in("status", ["live", "planned"])
-      .order("created_at", { ascending: false })
-      .limit(1);
+    const [eventRes, courtRes, matchRes] = await Promise.all([
+      supabase
+        .from("events")
+        .select("title")
+        .eq("id", eventId)
+        .single(),
 
-    if (error) {
-      console.error(error);
-      setPlayerMessage(`Fehler beim Laden des Matches: ${error.message}`);
+      supabase
+        .from("courts")
+        .select("name")
+        .eq("id", courtId)
+        .single(),
+
+      supabase
+        .from("matches")
+        .select("*")
+        .eq("event_id", eventId)
+        .eq("court_id", courtId)
+        .in("status", ["live", "planned"])
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+    setEventName(eventRes.data?.title || eventId);
+    setCourtName(courtRes.data?.name || courtId);
+
+    if (matchRes.error) {
+      setPlayerMessage(`Fehler beim Laden des Matches: ${matchRes.error.message}`);
       setLoadingMatch(false);
       return;
     }
 
-    if (!data || data.length === 0) {
+    if (!matchRes.data || matchRes.data.length === 0) {
       setMatch(null);
       setPlayerMessage("Kein aktives oder geplantes Match auf diesem Court gefunden.");
       setLoadingMatch(false);
       return;
     }
 
-    setMatch(data[0]);
+    setMatch(matchRes.data[0]);
     setLoadingMatch(false);
   }
 
@@ -1193,12 +1211,11 @@ function PlayerQRPage() {
     setSavingScore(false);
 
     if (error) {
-      console.error(error);
       setPlayerMessage(`Fehler beim Speichern: ${error.message}`);
       return;
     }
 
-    await loadMatchForCourt();
+    await loadPlayerPageData();
   }
 
   function plus(field) {
@@ -1220,9 +1237,14 @@ function PlayerQRPage() {
       <div style={styles.authCardWide}>
         <h1 style={styles.authTitle}>🎾 Spieler Eingabe</h1>
 
-        <div style={{ marginBottom: 16 }}>
-          <div style={styles.muted}>Event: {eventId || "-"}</div>
-          <div style={styles.muted}>Court: {courtId || "-"}</div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 22, fontWeight: 900 }}>
+            {eventName || "Event wird geladen..."}
+          </div>
+
+          <div style={{ ...styles.muted, marginTop: 6, fontSize: 18 }}>
+            {courtName || "Court wird geladen..."}
+          </div>
         </div>
 
         {playerMessage && <InfoBox>{playerMessage}</InfoBox>}
@@ -1232,7 +1254,11 @@ function PlayerQRPage() {
         ) : !match ? (
           <>
             <p>Kein Match gefunden.</p>
-            <button type="button" onClick={loadMatchForCourt} style={styles.primaryButtonFull}>
+            <button
+              type="button"
+              onClick={loadPlayerPageData}
+              style={styles.primaryButtonFull}
+            >
               Neu laden
             </button>
           </>
@@ -1242,23 +1268,83 @@ function PlayerQRPage() {
               <div style={styles.playerMatchTitle}>
                 {match.player_a || "Spieler A"} gegen {match.player_b || "Spieler B"}
               </div>
+
               <div style={styles.muted}>Modus: {match.mode || "-"}</div>
-              <div style={styles.muted}>Status: <strong>{match.status || "-"}</strong></div>
+              <div style={styles.muted}>
+                Status: <strong>{match.status || "-"}</strong>
+              </div>
             </div>
 
             <div style={styles.statusButtonRow}>
-              <button type="button" onClick={() => setStatus("planned")} style={smallButton(match.status === "planned")}>Planned</button>
-              <button type="button" onClick={() => setStatus("live")} style={smallButton(match.status === "live")}>Live</button>
-              <button type="button" onClick={() => setStatus("finished")} style={smallButton(match.status === "finished")}>Finished</button>
+              <button
+                type="button"
+                onClick={() => setStatus("planned")}
+                style={smallButton(match.status === "planned")}
+              >
+                Planned
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStatus("live")}
+                style={smallButton(match.status === "live")}
+              >
+                Live
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStatus("finished")}
+                style={smallButton(match.status === "finished")}
+              >
+                Finished
+              </button>
             </div>
 
             <div style={styles.scoreGridPlayer}>
-              <ScoreCard title="Satz 1" leftLabel={match.player_a || "A"} rightLabel={match.player_b || "B"} leftValue={match.set1_a || 0} rightValue={match.set1_b || 0} onLeftPlus={() => plus("set1_a")} onLeftMinus={() => minus("set1_a")} onRightPlus={() => plus("set1_b")} onRightMinus={() => minus("set1_b")} />
-              <ScoreCard title="Satz 2" leftLabel={match.player_a || "A"} rightLabel={match.player_b || "B"} leftValue={match.set2_a || 0} rightValue={match.set2_b || 0} onLeftPlus={() => plus("set2_a")} onLeftMinus={() => minus("set2_a")} onRightPlus={() => plus("set2_b")} onRightMinus={() => minus("set2_b")} />
-              <ScoreCard title="MTB" leftLabel={match.player_a || "A"} rightLabel={match.player_b || "B"} leftValue={match.set3_a || 0} rightValue={match.set3_b || 0} onLeftPlus={() => plus("set3_a")} onLeftMinus={() => minus("set3_a")} onRightPlus={() => plus("set3_b")} onRightMinus={() => minus("set3_b")} />
+              <ScoreCard
+                title="Satz 1"
+                leftLabel={match.player_a || "A"}
+                rightLabel={match.player_b || "B"}
+                leftValue={match.set1_a || 0}
+                rightValue={match.set1_b || 0}
+                onLeftPlus={() => plus("set1_a")}
+                onLeftMinus={() => minus("set1_a")}
+                onRightPlus={() => plus("set1_b")}
+                onRightMinus={() => minus("set1_b")}
+              />
+
+              <ScoreCard
+                title="Satz 2"
+                leftLabel={match.player_a || "A"}
+                rightLabel={match.player_b || "B"}
+                leftValue={match.set2_a || 0}
+                rightValue={match.set2_b || 0}
+                onLeftPlus={() => plus("set2_a")}
+                onLeftMinus={() => minus("set2_a")}
+                onRightPlus={() => plus("set2_b")}
+                onRightMinus={() => minus("set2_b")}
+              />
+
+              <ScoreCard
+                title="MTB"
+                leftLabel={match.player_a || "A"}
+                rightLabel={match.player_b || "B"}
+                leftValue={match.set3_a || 0}
+                rightValue={match.set3_b || 0}
+                onLeftPlus={() => plus("set3_a")}
+                onLeftMinus={() => minus("set3_a")}
+                onRightPlus={() => plus("set3_b")}
+                onRightMinus={() => minus("set3_b")}
+              />
             </div>
 
-            <button type="button" onClick={loadMatchForCourt} style={styles.primaryButtonFull} disabled={savingScore}>
+            <button
+              type="button"
+              onClick={loadPlayerPageData}
+              style={styles.primaryButtonFull}
+              disabled={savingScore}
+            >
               {savingScore ? "Speichern..." : "Aktualisieren"}
             </button>
           </>
@@ -1267,7 +1353,6 @@ function PlayerQRPage() {
     </div>
   );
 }
-
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
 
