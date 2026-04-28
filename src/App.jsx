@@ -1559,7 +1559,7 @@ function PlayerQRPage() {
       </div>
     </div>
   );
-}}
+}
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
 
