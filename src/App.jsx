@@ -1370,32 +1370,161 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
   }
 
   return (
-    <section style={styles.qrPanel}>
-      <div style={styles.qrHeader}>
-        <div>
-          <h2 style={styles.panelCardTitle}>QR-Codes</h2>
-          <div style={styles.panelCardSub}>{eventTitle}</div>
+    <>
+      <style>
+        {`
+          @media print {
+            body {
+              background: white !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+
+            body * {
+              visibility: hidden !important;
+            }
+
+            .qr-print-area,
+            .qr-print-area * {
+              visibility: visible !important;
+            }
+
+            .qr-print-area {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              background: white !important;
+              color: black !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+
+            .qr-print-header {
+              display: none !important;
+            }
+
+            .qr-print-grid {
+              display: block !important;
+            }
+
+            .qr-print-card {
+              width: 100% !important;
+              height: 277mm !important;
+              min-height: 277mm !important;
+              page-break-after: always !important;
+              break-after: page !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: center !important;
+              align-items: center !important;
+
+              border: none !important;
+              border-radius: 0 !important;
+              background: white !important;
+              color: black !important;
+              box-shadow: none !important;
+              padding: 18mm !important;
+              box-sizing: border-box !important;
+              text-align: center !important;
+            }
+
+            .qr-print-card:last-child {
+              page-break-after: auto !important;
+              break-after: auto !important;
+            }
+
+            .qr-print-event {
+              display: block !important;
+              font-size: 22pt !important;
+              font-weight: 700 !important;
+              margin-bottom: 12mm !important;
+              color: black !important;
+            }
+
+            .qr-print-card h3 {
+              font-size: 42pt !important;
+              font-weight: 900 !important;
+              margin: 0 0 18mm 0 !important;
+              color: black !important;
+            }
+
+            .qr-print-card svg {
+              width: 95mm !important;
+              height: 95mm !important;
+            }
+
+            .qr-print-text {
+              font-size: 24pt !important;
+              font-weight: 900 !important;
+              margin-top: 18mm !important;
+              color: black !important;
+            }
+
+            .qr-print-hint {
+              display: block !important;
+              font-size: 13pt !important;
+              margin-top: 8mm !important;
+              color: #333 !important;
+            }
+
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+          }
+        `}
+      </style>
+
+      <section className="qr-print-area" style={styles.qrPanel}>
+        <div className="qr-print-header" style={styles.qrHeader}>
+          <div>
+            <h2 style={styles.panelCardTitle}>QR-Codes</h2>
+            <div style={styles.panelCardSub}>{eventTitle}</div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            style={styles.primaryButton}
+          >
+            QR-Codes drucken
+          </button>
         </div>
 
-        <button type="button" onClick={() => window.print()} style={styles.primaryButton}>
-          QR-Codes drucken
-        </button>
-      </div>
+        <div className="qr-print-grid" style={styles.qrGrid}>
+          {courts.map((court) => (
+            <div key={court.id} className="qr-print-card" style={styles.qrCard}>
+              <div className="qr-print-event" style={{ display: "none" }}>
+                {eventTitle}
+              </div>
 
-      <div style={styles.qrGrid}>
-        {courts.map((court) => (
-          <div key={court.id} style={styles.qrCard}>
-            <h3 style={styles.qrCourtName}>{court.name}</h3>
-            <QRCodeSVG value={buildUrl(court.id)} size={190} level="H" includeMargin />
-            <div style={styles.qrText}>Spieler-Login für diesen Platz</div>
-            <div style={styles.qrSmallUrl}>{buildUrl(court.id)}</div>
-          </div>
-        ))}
-      </div>
-    </section>
+              <h3 style={styles.qrCourtName}>{court.name}</h3>
+
+              <QRCodeSVG
+                value={buildUrl(court.id)}
+                size={230}
+                level="H"
+                includeMargin
+              />
+
+              <div className="qr-print-text" style={styles.qrText}>
+                Spieler-Login
+              </div>
+
+              <div className="qr-print-hint" style={{ display: "none" }}>
+                QR-Code scannen und Spielstand für diesen Platz eintragen
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
-
 function PageShell({ children }) {
   return <div style={styles.pageCentered}>{children}</div>;
 }
