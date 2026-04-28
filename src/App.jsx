@@ -8,7 +8,9 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const [password, setPassword] = useState("");
+const [fullName, setFullName] = useState("");
+const [authMode, setAuthMode] = useState("login");
   const [message, setMessage] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -413,17 +415,73 @@ export default function App() {
   }
 
   async function handleLogin() {
-    setLoggingIn(true);
-    setMessage("");
+  setLoggingIn(true);
+  setMessage("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password: password.trim(),
+  });
+
+  if (error) {
+    setMessage(error.message);
+  }
+
+  setLoggingIn(false);
+}
+
+async function handleSignup() {
+  setLoggingIn(true);
+  setMessage("");
+
+  if (!fullName.trim() || !email.trim() || !password.trim()) {
+    setMessage("Bitte Name, E-Mail und Passwort eingeben.");
+    setLoggingIn(false);
+    return;
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password: password.trim(),
+  });
+
+  if (error) {
+    setMessage(error.message);
+    setLoggingIn(false);
+    return;
+  }
+
+  const userId = data.user?.id;
+
+  if (userId) {
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: userId,
+      email: email.trim(),
+      full_name: fullName.trim(),
+      role: "pending",
     });
 
-    if (error) setMessage(error.message);
-    setLoggingIn(false);
+    if (profileError) {
+      setMessage(`Profil-Fehler: ${profileError.message}`);
+      setLoggingIn(false);
+      return;
+    }
   }
+
+  setMessage("Registrierung erfolgreich. Freigabe erforderlich.");
+  setAuthMode("login");
+  setFullName("");
+  setPassword("");
+  setLoggingIn(false);
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut();
+  setProfile(null);
+  setPlayerAssignment(null);
+  setPlayerMatch(null);
+  setMessage("");
+}
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -837,23 +895,83 @@ export default function App() {
   }
 
   if (!session) {
-    return (
-      <PageShell>
-        <div style={{ ...styles.authCard, maxWidth: 460 }}>
-          <div style={styles.authKicker}>LIVE TENNIS CONTROL</div>
-          <h1 style={styles.authTitle}>Login</h1>
-          {message && <InfoBox>{message}</InfoBox>}
+  return (
+    <PageShell>
+      <div style={{ ...styles.authCard, maxWidth: 520 }}>
+        <div style={styles.authKicker}>LIVE TENNIS CONTROL</div>
 
-          <input placeholder="E-Mail" value={email} onChange={(e) => setEmail(e.target.value)} style={styles.input} />
-          <input type="password" placeholder="Passwort" value={password} onChange={(e) => setPassword(e.target.value)} style={styles.input} />
+        <h1 style={styles.authTitle}>
+          {authMode === "login" ? "Willkommen zurück" : "Zugang anfragen"}
+        </h1>
 
-          <button type="button" onClick={handleLogin} style={styles.primaryButtonFull} disabled={loggingIn}>
+        <p style={{ ...styles.muted, marginBottom: 22, lineHeight: 1.5 }}>
+          {authMode === "login"
+            ? "Melde dich an, um deine Turniere zu verwalten."
+            : "Registriere dich. Dein Zugang wird anschließend von der Turnierleitung freigegeben."}
+        </p>
+
+        {message && <InfoBox>{message}</InfoBox>}
+
+        {authMode === "signup" && (
+          <input
+            placeholder="Vollständiger Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            style={styles.input}
+          />
+        )}
+
+        <input
+          placeholder="E-Mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={styles.input}
+        />
+
+        <input
+          type="password"
+          placeholder="Passwort"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={styles.input}
+        />
+
+        {authMode === "login" ? (
+          <button
+            type="button"
+            onClick={handleLogin}
+            style={styles.primaryButtonFull}
+            disabled={loggingIn}
+          >
             {loggingIn ? "Einloggen..." : "Einloggen"}
           </button>
-        </div>
-      </PageShell>
-    );
-  }
+        ) : (
+          <button
+            type="button"
+            onClick={handleSignup}
+            style={styles.primaryButtonFull}
+            disabled={loggingIn}
+          >
+            {loggingIn ? "Registrieren..." : "Zugang anfragen"}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            setMessage("");
+            setAuthMode(authMode === "login" ? "signup" : "login");
+          }}
+          style={styles.ghostButtonFull}
+        >
+          {authMode === "login"
+            ? "Noch keinen Zugang? Registrierung anfragen"
+            : "Schon freigegeben? Zum Login"}
+        </button>
+      </div>
+    </PageShell>
+  );
+}
 
   if (!profile) {
     return (
@@ -870,7 +988,39 @@ export default function App() {
       </PageShell>
     );
   }
+if (profile.role === "pending") {
+  return (
+    <PageShell>
+      <div style={{ ...styles.authCard, maxWidth: 580 }}>
+        <div style={styles.authKicker}>ZUGANG ANGEFRAGT</div>
 
+        <h1 style={styles.authTitle}>Freigabe ausstehend</h1>
+
+        <p style={{ ...styles.muted, lineHeight: 1.6 }}>
+          Dein Konto wurde erfolgreich erstellt.
+          <br />
+          Die Turnierleitung prüft aktuell deinen Zugang.
+          <br /><br />
+          Sobald du freigeschaltet bist, kannst du deine eigenen Turniere verwalten.
+        </p>
+
+        <div style={{ marginTop: 22, lineHeight: 1.8 }}>
+          <div><strong>Name:</strong> {profile.full_name || "-"}</div>
+          <div><strong>E-Mail:</strong> {session.user.email}</div>
+          <div><strong>Status:</strong> wartet auf Freigabe</div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          style={styles.primaryButtonFull}
+        >
+          Logout
+        </button>
+      </div>
+    </PageShell>
+  );
+}
   if (profile.role === "admin") {
     return (
       <div style={styles.page}>
