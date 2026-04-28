@@ -105,13 +105,8 @@ export default function App() {
   useEffect(() => {
     if (!profile) return;
 
-    if (profile.role === "admin") {
-      loadAdminData();
-    }
-
-    if (profile.role === "player") {
-      loadPlayerData();
-    }
+    if (profile.role === "admin") loadAdminData();
+    if (profile.role === "player") loadPlayerData();
   }, [profile]);
 
   useEffect(() => {
@@ -195,13 +190,11 @@ export default function App() {
     setEventLogoUrlInput("");
     setLogoFile(null);
     setCourtCountInput(4);
-
     setMonitorTitle("LIVE SCOREBOARD");
     setMonitorSubtitle("");
     setPrimaryColor("#90ff61");
     setAccentColor("#13378b");
     setBackgroundStyle("dark");
-
     setTextColor("#ffffff");
     setBackgroundColor("#0a1f44");
     setBorderColor("#00ff9d");
@@ -231,50 +224,20 @@ export default function App() {
 
     const [orgRes, eventsRes, courtsRes, playersRes, matchesRes, brandingRes] =
       await Promise.all([
-        supabase
-          .from("organizations")
-          .select("*")
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("events")
-          .select("*")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("courts")
-          .select("*")
-          .order("sort_order", { ascending: true }),
+        supabase.from("organizations").select("*").order("created_at", { ascending: true }),
+        supabase.from("events").select("*").order("created_at", { ascending: false }),
+        supabase.from("courts").select("*").order("sort_order", { ascending: true }),
         supabase.from("profiles").select("*").eq("role", "player"),
-        supabase
-          .from("matches")
-          .select("*")
-          .order("created_at", { ascending: false }),
+        supabase.from("matches").select("*").order("created_at", { ascending: false }),
         supabase.from("branding_settings").select("*"),
       ]);
 
-    if (orgRes.error) {
-      setMessage(`Fehler beim Laden der Organisationen: ${orgRes.error.message}`);
-      return;
-    }
-    if (eventsRes.error) {
-      setMessage(`Fehler beim Laden der Events: ${eventsRes.error.message}`);
-      return;
-    }
-    if (courtsRes.error) {
-      setMessage(`Fehler beim Laden der Courts: ${courtsRes.error.message}`);
-      return;
-    }
-    if (playersRes.error) {
-      setMessage(`Fehler beim Laden der Player: ${playersRes.error.message}`);
-      return;
-    }
-    if (matchesRes.error) {
-      setMessage(`Fehler beim Laden der Matches: ${matchesRes.error.message}`);
-      return;
-    }
-    if (brandingRes.error) {
-      setMessage(`Fehler beim Laden der Branding-Einstellungen: ${brandingRes.error.message}`);
-      return;
-    }
+    if (orgRes.error) return setMessage(`Fehler Organisationen: ${orgRes.error.message}`);
+    if (eventsRes.error) return setMessage(`Fehler Events: ${eventsRes.error.message}`);
+    if (courtsRes.error) return setMessage(`Fehler Courts: ${courtsRes.error.message}`);
+    if (playersRes.error) return setMessage(`Fehler Player: ${playersRes.error.message}`);
+    if (matchesRes.error) return setMessage(`Fehler Matches: ${matchesRes.error.message}`);
+    if (brandingRes.error) return setMessage(`Fehler Branding: ${brandingRes.error.message}`);
 
     const loadedOrganizations = orgRes.data || [];
     const loadedEvents = eventsRes.data || [];
@@ -291,10 +254,7 @@ export default function App() {
       const orgStillExists = loadedOrganizations.some(
         (o) => String(o.id) === String(selectedOrganization)
       );
-
-      if (!orgStillExists) {
-        setSelectedOrganization(String(loadedOrganizations[0].id));
-      }
+      if (!orgStillExists) setSelectedOrganization(String(loadedOrganizations[0].id));
     } else {
       setSelectedOrganization("");
     }
@@ -351,7 +311,7 @@ export default function App() {
       .limit(1);
 
     if (assignmentError) {
-      setMessage(`Fehler beim Laden der Spieler-Zuordnung: ${assignmentError.message}`);
+      setMessage(`Fehler Spieler-Zuordnung: ${assignmentError.message}`);
       return;
     }
 
@@ -373,7 +333,7 @@ export default function App() {
       .limit(1);
 
     if (matchError) {
-      setMessage(`Fehler beim Laden des Matches: ${matchError.message}`);
+      setMessage(`Fehler Match: ${matchError.message}`);
       return;
     }
 
@@ -408,35 +368,26 @@ export default function App() {
   }
 
   async function createEvent() {
-    if (!newEventTitle.trim()) {
-      setMessage("Bitte einen Turniernamen eingeben.");
-      return;
-    }
-
-    if (!selectedOrganization) {
-      setMessage("Bitte zuerst eine Organisation auswählen.");
-      return;
-    }
+    if (!newEventTitle.trim()) return setMessage("Bitte einen Turniernamen eingeben.");
+    if (!selectedOrganization) return setMessage("Bitte zuerst eine Organisation auswählen.");
 
     setSaving(true);
     setMessage("");
 
-    const payload = {
-      organization_id: selectedOrganization,
-      title: newEventTitle.trim(),
-      subtitle: newEventSubtitle.trim() || null,
-      location: newEventLocation.trim() || null,
-    };
-
     const { data, error } = await supabase
       .from("events")
-      .insert(payload)
+      .insert({
+        organization_id: selectedOrganization,
+        title: newEventTitle.trim(),
+        subtitle: newEventSubtitle.trim() || null,
+        location: newEventLocation.trim() || null,
+      })
       .select()
       .single();
 
     if (error) {
       setSaving(false);
-      setMessage(`Fehler beim Erstellen des Events: ${error.message}`);
+      setMessage(`Fehler Event: ${error.message}`);
       return;
     }
 
@@ -444,7 +395,7 @@ export default function App() {
       await ensureCourtCount(data.id, newCourtCount || 1);
       await ensureBrandingRow(data.id);
     } catch (setupError) {
-      setMessage(`Event erstellt, aber Setup war nicht vollständig: ${setupError.message || setupError}`);
+      setMessage(`Event erstellt, aber Setup unvollständig: ${setupError.message || setupError}`);
     }
 
     setSaving(false);
@@ -516,15 +467,8 @@ export default function App() {
   }
 
   async function createMatch() {
-    if (!selectedEvent || !selectedCourt) {
-      setMessage("Bitte Event und Court auswählen.");
-      return;
-    }
-
-    if (!playerA.trim() || !playerB.trim()) {
-      setMessage("Bitte Spieler A und Spieler B eingeben.");
-      return;
-    }
+    if (!selectedEvent || !selectedCourt) return setMessage("Bitte Event und Court auswählen.");
+    if (!playerA.trim() || !playerB.trim()) return setMessage("Bitte Spieler A und Spieler B eingeben.");
 
     setSaving(true);
     setMessage("");
@@ -546,10 +490,7 @@ export default function App() {
 
     setSaving(false);
 
-    if (error) {
-      setMessage(`Fehler beim Erstellen des Matches: ${error.message}`);
-      return;
-    }
+    if (error) return setMessage(`Fehler Match: ${error.message}`);
 
     setMessage("Match erstellt.");
     setPlayerA("");
@@ -559,8 +500,7 @@ export default function App() {
 
   async function assignPlayer() {
     if (!selectedPlayer || !selectedEvent || !selectedCourt) {
-      setMessage("Bitte Player, Event und Court auswählen.");
-      return;
+      return setMessage("Bitte Player, Event und Court auswählen.");
     }
 
     setSaving(true);
@@ -574,11 +514,7 @@ export default function App() {
 
     setSaving(false);
 
-    if (error) {
-      setMessage(`Fehler bei der Player-Zuweisung: ${error.message}`);
-      return;
-    }
-
+    if (error) return setMessage(`Fehler Player-Zuweisung: ${error.message}`);
     setMessage("Player zugewiesen.");
   }
 
@@ -619,9 +555,7 @@ export default function App() {
     try {
       let finalLogoUrl = eventLogoUrlInput.trim() || null;
 
-      if (logoFile) {
-        finalLogoUrl = await uploadEventLogo(logoFile);
-      }
+      if (logoFile) finalLogoUrl = await uploadEventLogo(logoFile);
 
       const { error: eventError } = await supabase
         .from("events")
@@ -654,38 +588,25 @@ export default function App() {
       };
 
       if (existingBranding) {
-        const { error: brandingError } = await supabase
+        const { error } = await supabase
           .from("branding_settings")
           .update(brandingPayload)
           .eq("event_id", selectedEvent);
-
-        if (brandingError) throw brandingError;
+        if (error) throw error;
       } else {
-        const { error: brandingInsertError } = await supabase
-          .from("branding_settings")
-          .insert(brandingPayload);
-
-        if (brandingInsertError) throw brandingInsertError;
+        const { error } = await supabase.from("branding_settings").insert(brandingPayload);
+        if (error) throw error;
       }
 
       await ensureCourtCount(selectedEvent, courtCountInput);
 
-      const currentCourtCount = courts.filter(
-        (c) => String(c.event_id) === String(selectedEvent)
-      ).length;
-
-      if (Number(courtCountInput) < currentCourtCount) {
-        setMessage("Branding gespeichert. Weniger Courts gewählt: bestehende Courts wurden nicht automatisch gelöscht.");
-      } else {
-        setMessage("Branding und Event-Daten gespeichert.");
-      }
-
+      setMessage("Branding und Event-Daten gespeichert.");
       setLogoFile(null);
       setEditorDirty(false);
       await loadAdminData();
       return true;
     } catch (error) {
-      setMessage(`Fehler beim Speichern des Branding-Editors: ${error.message || error}`);
+      setMessage(`Fehler Branding: ${error.message || error}`);
       return false;
     } finally {
       setSaving(false);
@@ -693,10 +614,7 @@ export default function App() {
   }
 
   async function removeEventLogo() {
-    if (!selectedEvent) {
-      setMessage("Bitte zuerst ein Event auswählen.");
-      return;
-    }
+    if (!selectedEvent) return setMessage("Bitte zuerst ein Event auswählen.");
 
     setSaving(true);
     setMessage("");
@@ -715,17 +633,14 @@ export default function App() {
       setMessage("Logo entfernt.");
       await loadAdminData();
     } catch (error) {
-      setMessage(`Fehler beim Entfernen des Logos: ${error.message || error}`);
+      setMessage(`Fehler Logo: ${error.message || error}`);
     } finally {
       setSaving(false);
     }
   }
 
   async function openMonitorForEvent() {
-    if (!selectedEvent) {
-      setMessage("Bitte zuerst ein Event auswählen.");
-      return;
-    }
+    if (!selectedEvent) return setMessage("Bitte zuerst ein Event auswählen.");
 
     const ok = await saveBrandingEditor();
     if (!ok) return;
@@ -777,10 +692,7 @@ export default function App() {
 
     setSaving(false);
 
-    if (error) {
-      setMessage(`Fehler beim Speichern: ${error.message}`);
-      return;
-    }
+    if (error) return setMessage(`Fehler Speichern: ${error.message}`);
 
     setMessage("Ergebnis gespeichert.");
     await loadPlayerData();
@@ -821,24 +733,10 @@ export default function App() {
     return matches.filter((m) => String(m.event_id) === String(selectedEvent));
   }, [matches, selectedEvent]);
 
-  const activeEventBranding = selectedBrandingObj;
-  const headerLogo = activeEventBranding?.logo_url;
+  const headerLogo = selectedBrandingObj?.logo_url;
 
   if (window.location.pathname === "/player") {
-    const params = new URLSearchParams(window.location.search);
-    const eventId = params.get("event");
-    const courtId = params.get("court");
-
-    return (
-      <div style={styles.pageCentered}>
-        <div style={styles.authCard}>
-          <h1 style={styles.authTitle}>🎾 Spieler Eingabe</h1>
-          <p><strong>Event:</strong> {eventId}</p>
-          <p><strong>Court:</strong> {courtId}</p>
-          <p style={styles.muted}>QR-Code funktioniert. Hier bauen wir danach die Punkte-Eingabe.</p>
-        </div>
-      </div>
-    );
+    return <PlayerQRPage />;
   }
 
   if (!authReady) {
@@ -937,11 +835,7 @@ export default function App() {
         </section>
 
         {adminTab === "qr" && (
-          <QRPrintPanel
-            eventId={selectedEvent}
-            eventTitle={eventName(selectedEventObj)}
-            courts={filteredCourts}
-          />
+          <QRPrintPanel eventId={selectedEvent} eventTitle={eventName(selectedEventObj)} courts={filteredCourts} />
         )}
 
         {adminTab === "admin" && (
@@ -1234,6 +1128,146 @@ export default function App() {
   );
 }
 
+function PlayerQRPage() {
+  const params = new URLSearchParams(window.location.search);
+  const eventId = params.get("event");
+  const courtId = params.get("court");
+
+  const [match, setMatch] = useState(null);
+  const [loadingMatch, setLoadingMatch] = useState(true);
+  const [playerMessage, setPlayerMessage] = useState("");
+  const [savingScore, setSavingScore] = useState(false);
+
+  useEffect(() => {
+    loadMatchForCourt();
+  }, [eventId, courtId]);
+
+  async function loadMatchForCourt() {
+    setLoadingMatch(true);
+    setPlayerMessage("");
+
+    if (!eventId || !courtId) {
+      setPlayerMessage("Event oder Court fehlt im QR-Code.");
+      setLoadingMatch(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("court_id", courtId)
+      .in("status", ["live", "planned"])
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error(error);
+      setPlayerMessage(`Fehler beim Laden des Matches: ${error.message}`);
+      setLoadingMatch(false);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      setMatch(null);
+      setPlayerMessage("Kein aktives oder geplantes Match auf diesem Court gefunden.");
+      setLoadingMatch(false);
+      return;
+    }
+
+    setMatch(data[0]);
+    setLoadingMatch(false);
+  }
+
+  async function updateMatch(payload) {
+    if (!match) return;
+
+    setSavingScore(true);
+    setPlayerMessage("");
+
+    const { error } = await supabase
+      .from("matches")
+      .update(payload)
+      .eq("id", match.id);
+
+    setSavingScore(false);
+
+    if (error) {
+      console.error(error);
+      setPlayerMessage(`Fehler beim Speichern: ${error.message}`);
+      return;
+    }
+
+    await loadMatchForCourt();
+  }
+
+  function plus(field) {
+    if (!match) return;
+    updateMatch({ [field]: Number(match[field] || 0) + 1 });
+  }
+
+  function minus(field) {
+    if (!match) return;
+    updateMatch({ [field]: Math.max(0, Number(match[field] || 0) - 1) });
+  }
+
+  function setStatus(status) {
+    updateMatch({ status });
+  }
+
+  return (
+    <div style={styles.pageCentered}>
+      <div style={styles.authCardWide}>
+        <h1 style={styles.authTitle}>🎾 Spieler Eingabe</h1>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={styles.muted}>Event: {eventId || "-"}</div>
+          <div style={styles.muted}>Court: {courtId || "-"}</div>
+        </div>
+
+        {playerMessage && <InfoBox>{playerMessage}</InfoBox>}
+
+        {loadingMatch ? (
+          <p style={styles.muted}>Match wird geladen...</p>
+        ) : !match ? (
+          <>
+            <p>Kein Match gefunden.</p>
+            <button type="button" onClick={loadMatchForCourt} style={styles.primaryButtonFull}>
+              Neu laden
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={styles.playerMatchBox}>
+              <div style={styles.playerMatchTitle}>
+                {match.player_a || "Spieler A"} gegen {match.player_b || "Spieler B"}
+              </div>
+              <div style={styles.muted}>Modus: {match.mode || "-"}</div>
+              <div style={styles.muted}>Status: <strong>{match.status || "-"}</strong></div>
+            </div>
+
+            <div style={styles.statusButtonRow}>
+              <button type="button" onClick={() => setStatus("planned")} style={smallButton(match.status === "planned")}>Planned</button>
+              <button type="button" onClick={() => setStatus("live")} style={smallButton(match.status === "live")}>Live</button>
+              <button type="button" onClick={() => setStatus("finished")} style={smallButton(match.status === "finished")}>Finished</button>
+            </div>
+
+            <div style={styles.scoreGridPlayer}>
+              <ScoreCard title="Satz 1" leftLabel={match.player_a || "A"} rightLabel={match.player_b || "B"} leftValue={match.set1_a || 0} rightValue={match.set1_b || 0} onLeftPlus={() => plus("set1_a")} onLeftMinus={() => minus("set1_a")} onRightPlus={() => plus("set1_b")} onRightMinus={() => minus("set1_b")} />
+              <ScoreCard title="Satz 2" leftLabel={match.player_a || "A"} rightLabel={match.player_b || "B"} leftValue={match.set2_a || 0} rightValue={match.set2_b || 0} onLeftPlus={() => plus("set2_a")} onLeftMinus={() => minus("set2_a")} onRightPlus={() => plus("set2_b")} onRightMinus={() => minus("set2_b")} />
+              <ScoreCard title="MTB" leftLabel={match.player_a || "A"} rightLabel={match.player_b || "B"} leftValue={match.set3_a || 0} rightValue={match.set3_b || 0} onLeftPlus={() => plus("set3_a")} onLeftMinus={() => minus("set3_a")} onRightPlus={() => plus("set3_b")} onRightMinus={() => minus("set3_b")} />
+            </div>
+
+            <button type="button" onClick={loadMatchForCourt} style={styles.primaryButtonFull} disabled={savingScore}>
+              {savingScore ? "Speichern..." : "Aktualisieren"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
 
@@ -1267,9 +1301,7 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
         {courts.map((court) => (
           <div key={court.id} style={styles.qrCard}>
             <h3 style={styles.qrCourtName}>{court.name}</h3>
-
             <QRCodeSVG value={buildUrl(court.id)} size={190} level="H" includeMargin />
-
             <div style={styles.qrText}>Spieler-Login für diesen Platz</div>
             <div style={styles.qrSmallUrl}>{buildUrl(court.id)}</div>
           </div>
@@ -1704,7 +1736,6 @@ const styles = {
   scoreCardTitle: { fontSize: 22, fontWeight: 900, marginBottom: 18 },
   playerRowControls: { display: "flex", alignItems: "center", justifyContent: "center", gap: 10 },
   scoreNumber: { minWidth: 70, padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.22)", fontSize: 28, fontWeight: 900, color: "#6be7ff" },
-
   qrPanel: {
     marginTop: 14,
     borderRadius: 20,
