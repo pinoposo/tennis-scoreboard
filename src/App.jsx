@@ -220,86 +220,152 @@ export default function App() {
   }
 
   async function loadAdminData() {
-    setMessage("");
+  setMessage("");
 
-    const [orgRes, eventsRes, courtsRes, playersRes, matchesRes, brandingRes] =
-      await Promise.all([
-        supabase.from("organizations").select("*").order("created_at", { ascending: true }),
-        supabase.from("events").select("*").order("created_at", { ascending: false }),
-        supabase.from("courts").select("*").order("sort_order", { ascending: true }),
-        supabase.from("profiles").select("*").eq("role", "player"),
-        supabase.from("matches").select("*").order("created_at", { ascending: false }),
-        supabase.from("branding_settings").select("*"),
-      ]);
-
-    if (orgRes.error) return setMessage(`Fehler Organisationen: ${orgRes.error.message}`);
-    if (eventsRes.error) return setMessage(`Fehler Events: ${eventsRes.error.message}`);
-    if (courtsRes.error) return setMessage(`Fehler Courts: ${courtsRes.error.message}`);
-    if (playersRes.error) return setMessage(`Fehler Player: ${playersRes.error.message}`);
-    if (matchesRes.error) return setMessage(`Fehler Matches: ${matchesRes.error.message}`);
-    if (brandingRes.error) return setMessage(`Fehler Branding: ${brandingRes.error.message}`);
-
-    const loadedOrganizations = orgRes.data || [];
-    const loadedEvents = eventsRes.data || [];
-    const loadedCourts = courtsRes.data || [];
-
-    setOrganizations(loadedOrganizations);
-    setEvents(loadedEvents);
-    setCourts(loadedCourts);
-    setPlayers(playersRes.data || []);
-    setMatches(matchesRes.data || []);
-    setBrandingSettings(brandingRes.data || []);
-
-    if (loadedOrganizations.length > 0) {
-      const orgStillExists = loadedOrganizations.some(
-        (o) => String(o.id) === String(selectedOrganization)
-      );
-      if (!orgStillExists) setSelectedOrganization(String(loadedOrganizations[0].id));
-    } else {
-      setSelectedOrganization("");
-    }
-
-    if (loadedEvents.length === 0) {
-      setSelectedEvent("");
-      setSelectedCourt("");
-      return;
-    }
-
-    const selectedStillExists = loadedEvents.some(
-      (e) => String(e.id) === String(selectedEvent)
-    );
-
-    const nextSelectedEvent = selectedStillExists
-      ? String(selectedEvent)
-      : String(loadedEvents[0].id);
-
-    setSelectedEvent(nextSelectedEvent);
-
-    const selectedEventObj = loadedEvents.find(
-      (e) => String(e.id) === String(nextSelectedEvent)
-    );
-
-    if (selectedEventObj?.organization_id) {
-      setSelectedOrganization(String(selectedEventObj.organization_id));
-    }
-
-    const matchingCourts = loadedCourts.filter(
-      (c) => String(c.event_id) === String(nextSelectedEvent)
-    );
-
-    if (matchingCourts.length === 0) {
-      setSelectedCourt("");
-      return;
-    }
-
-    const courtStillExists = matchingCourts.some(
-      (c) => String(c.id) === String(selectedCourt)
-    );
-
-    if (!courtStillExists) {
-      setSelectedCourt(String(matchingCourts[0].id));
-    }
+  if (!session?.user?.id) {
+    setMessage("Kein Admin-User gefunden. Bitte neu einloggen.");
+    return;
   }
+
+  const userId = session.user.id;
+
+  const [orgRes, eventsRes, playersRes] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("*")
+      .order("created_at", { ascending: true }),
+
+    supabase
+      .from("events")
+      .select("*")
+      .eq("admin_id", userId)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("role", "player"),
+  ]);
+
+  if (orgRes.error) {
+    setMessage(`Fehler beim Laden der Organisationen: ${orgRes.error.message}`);
+    return;
+  }
+
+  if (eventsRes.error) {
+    setMessage(`Fehler beim Laden der Events: ${eventsRes.error.message}`);
+    return;
+  }
+
+  if (playersRes.error) {
+    setMessage(`Fehler beim Laden der Player: ${playersRes.error.message}`);
+    return;
+  }
+
+  const loadedOrganizations = orgRes.data || [];
+  const loadedEvents = eventsRes.data || [];
+  const eventIds = loadedEvents.map((event) => event.id);
+
+  let courtsRes = { data: [], error: null };
+  let matchesRes = { data: [], error: null };
+  let brandingRes = { data: [], error: null };
+
+  if (eventIds.length > 0) {
+    [courtsRes, matchesRes, brandingRes] = await Promise.all([
+      supabase
+        .from("courts")
+        .select("*")
+        .in("event_id", eventIds)
+        .order("sort_order", { ascending: true }),
+
+      supabase
+        .from("matches")
+        .select("*")
+        .in("event_id", eventIds)
+        .order("created_at", { ascending: false }),
+
+      supabase
+        .from("branding_settings")
+        .select("*")
+        .in("event_id", eventIds),
+    ]);
+  }
+
+  if (courtsRes.error) {
+    setMessage(`Fehler beim Laden der Courts: ${courtsRes.error.message}`);
+    return;
+  }
+
+  if (matchesRes.error) {
+    setMessage(`Fehler beim Laden der Matches: ${matchesRes.error.message}`);
+    return;
+  }
+
+  if (brandingRes.error) {
+    setMessage(`Fehler beim Laden des Brandings: ${brandingRes.error.message}`);
+    return;
+  }
+
+  setOrganizations(loadedOrganizations);
+  setEvents(loadedEvents);
+  setCourts(courtsRes.data || []);
+  setPlayers(playersRes.data || []);
+  setMatches(matchesRes.data || []);
+  setBrandingSettings(brandingRes.data || []);
+
+  if (loadedOrganizations.length > 0) {
+    const orgStillExists = loadedOrganizations.some(
+      (org) => String(org.id) === String(selectedOrganization)
+    );
+
+    if (!orgStillExists) {
+      setSelectedOrganization(String(loadedOrganizations[0].id));
+    }
+  } else {
+    setSelectedOrganization("");
+  }
+
+  if (loadedEvents.length === 0) {
+    setSelectedEvent("");
+    setSelectedCourt("");
+    return;
+  }
+
+  const selectedStillExists = loadedEvents.some(
+    (event) => String(event.id) === String(selectedEvent)
+  );
+
+  const nextSelectedEvent = selectedStillExists
+    ? String(selectedEvent)
+    : String(loadedEvents[0].id);
+
+  setSelectedEvent(nextSelectedEvent);
+
+  const selectedEventObj = loadedEvents.find(
+    (event) => String(event.id) === String(nextSelectedEvent)
+  );
+
+  if (selectedEventObj?.organization_id) {
+    setSelectedOrganization(String(selectedEventObj.organization_id));
+  }
+
+  const matchingCourts = (courtsRes.data || []).filter(
+    (court) => String(court.event_id) === String(nextSelectedEvent)
+  );
+
+  if (matchingCourts.length === 0) {
+    setSelectedCourt("");
+    return;
+  }
+
+  const courtStillExists = matchingCourts.some(
+    (court) => String(court.id) === String(selectedCourt)
+  );
+
+  if (!courtStillExists) {
+    setSelectedCourt(String(matchingCourts[0].id));
+  }
+}
 
   async function loadPlayerData() {
     setMessage("");
@@ -368,50 +434,73 @@ export default function App() {
   }
 
   async function createEvent() {
-    if (!newEventTitle.trim()) return setMessage("Bitte einen Turniernamen eingeben.");
-    if (!selectedOrganization) return setMessage("Bitte zuerst eine Organisation auswählen.");
+  if (!newEventTitle.trim()) {
+    setMessage("Bitte einen Turniernamen eingeben.");
+    return;
+  }
 
-    setSaving(true);
-    setMessage("");
+  if (!selectedOrganization) {
+    setMessage("Bitte zuerst eine Organisation auswählen.");
+    return;
+  }
 
-    const { data, error } = await supabase
-      .from("events")
-      .insert({
-        organization_id: selectedOrganization,
-        title: newEventTitle.trim(),
-        subtitle: newEventSubtitle.trim() || null,
-        location: newEventLocation.trim() || null,
-      })
-      .select()
-      .single();
+  if (!session?.user?.id) {
+    setMessage("Kein Admin-User gefunden. Bitte neu einloggen.");
+    return;
+  }
 
-    if (error) {
-      setSaving(false);
-      setMessage(`Fehler Event: ${error.message}`);
-      return;
-    }
+  setSaving(true);
+  setMessage("");
 
-    try {
-      await ensureCourtCount(data.id, newCourtCount || 1);
-      await ensureBrandingRow(data.id);
-    } catch (setupError) {
-      setMessage(`Event erstellt, aber Setup unvollständig: ${setupError.message || setupError}`);
-    }
+  const payload = {
+    organization_id: selectedOrganization,
+    admin_id: session.user.id,
+    title: newEventTitle.trim(),
+    subtitle: newEventSubtitle.trim() || null,
+    location: newEventLocation.trim() || null,
+  };
 
+  const { data, error } = await supabase
+    .from("events")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
     setSaving(false);
-    setMessage("Event erstellt.");
-    setNewEventTitle("");
-    setNewEventSubtitle("");
-    setNewEventLocation("");
-    setNewCourtCount(4);
+    setMessage(`Fehler beim Erstellen des Events: ${error.message}`);
+    return;
+  }
 
-    await loadAdminData();
+  try {
+    await ensureCourtCount(data.id, newCourtCount || 1);
+    await ensureBrandingRow(data.id);
+  } catch (setupError) {
+    setMessage(
+      `Event erstellt, aber Setup war nicht vollständig: ${
+        setupError.message || setupError
+      }`
+    );
+  }
 
-    if (data?.id) {
-      setSelectedEvent(String(data.id));
-      if (data.organization_id) setSelectedOrganization(String(data.organization_id));
+  setSaving(false);
+  setMessage("Event erstellt.");
+
+  setNewEventTitle("");
+  setNewEventSubtitle("");
+  setNewEventLocation("");
+  setNewCourtCount(4);
+
+  await loadAdminData();
+
+  if (data?.id) {
+    setSelectedEvent(String(data.id));
+
+    if (data.organization_id) {
+      setSelectedOrganization(String(data.organization_id));
     }
   }
+}
 
   async function ensureCourtCount(eventId, desiredCount) {
     const safeCount = Math.max(1, Number(desiredCount) || 1);
@@ -495,7 +584,7 @@ export default function App() {
     setMessage("Match erstellt.");
     setPlayerA("");
     setPlayerB("");
-    await loadAdminData();
+    await loadAdminData();s
   }
 
   async function assignPlayer() {
