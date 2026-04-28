@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "./lib/supabase/client";
 
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
   const [sponsorText, setSponsorText] = useState("Präsentiert von GP23 Sport");
 
   const [editorDirty, setEditorDirty] = useState(false);
+  const [adminTab, setAdminTab] = useState("admin");
 
   const [playerAssignment, setPlayerAssignment] = useState(null);
   const [playerMatch, setPlayerMatch] = useState(null);
@@ -250,35 +252,27 @@ export default function App() {
       ]);
 
     if (orgRes.error) {
-      console.error(orgRes.error);
       setMessage(`Fehler beim Laden der Organisationen: ${orgRes.error.message}`);
       return;
     }
     if (eventsRes.error) {
-      console.error(eventsRes.error);
       setMessage(`Fehler beim Laden der Events: ${eventsRes.error.message}`);
       return;
     }
     if (courtsRes.error) {
-      console.error(courtsRes.error);
       setMessage(`Fehler beim Laden der Courts: ${courtsRes.error.message}`);
       return;
     }
     if (playersRes.error) {
-      console.error(playersRes.error);
       setMessage(`Fehler beim Laden der Player: ${playersRes.error.message}`);
       return;
     }
     if (matchesRes.error) {
-      console.error(matchesRes.error);
       setMessage(`Fehler beim Laden der Matches: ${matchesRes.error.message}`);
       return;
     }
     if (brandingRes.error) {
-      console.error(brandingRes.error);
-      setMessage(
-        `Fehler beim Laden der Branding-Einstellungen: ${brandingRes.error.message}`
-      );
+      setMessage(`Fehler beim Laden der Branding-Einstellungen: ${brandingRes.error.message}`);
       return;
     }
 
@@ -357,10 +351,7 @@ export default function App() {
       .limit(1);
 
     if (assignmentError) {
-      console.error("Assignment-Fehler:", assignmentError);
-      setMessage(
-        `Fehler beim Laden der Spieler-Zuordnung: ${assignmentError.message}`
-      );
+      setMessage(`Fehler beim Laden der Spieler-Zuordnung: ${assignmentError.message}`);
       return;
     }
 
@@ -382,7 +373,6 @@ export default function App() {
       .limit(1);
 
     if (matchError) {
-      console.error("Match-Fehler:", matchError);
       setMessage(`Fehler beim Laden des Matches: ${matchError.message}`);
       return;
     }
@@ -405,10 +395,7 @@ export default function App() {
       password,
     });
 
-    if (error) {
-      setMessage(error.message);
-    }
-
+    if (error) setMessage(error.message);
     setLoggingIn(false);
   }
 
@@ -449,7 +436,6 @@ export default function App() {
 
     if (error) {
       setSaving(false);
-      console.error("createEvent error:", error);
       setMessage(`Fehler beim Erstellen des Events: ${error.message}`);
       return;
     }
@@ -458,12 +444,7 @@ export default function App() {
       await ensureCourtCount(data.id, newCourtCount || 1);
       await ensureBrandingRow(data.id);
     } catch (setupError) {
-      console.error(setupError);
-      setMessage(
-        `Event erstellt, aber Setup war nicht vollständig: ${
-          setupError.message || setupError
-        }`
-      );
+      setMessage(`Event erstellt, aber Setup war nicht vollständig: ${setupError.message || setupError}`);
     }
 
     setSaving(false);
@@ -477,9 +458,7 @@ export default function App() {
 
     if (data?.id) {
       setSelectedEvent(String(data.id));
-      if (data.organization_id) {
-        setSelectedOrganization(String(data.organization_id));
-      }
+      if (data.organization_id) setSelectedOrganization(String(data.organization_id));
     }
   }
 
@@ -495,7 +474,6 @@ export default function App() {
     if (error) throw error;
 
     const currentCount = existingCourts?.length || 0;
-
     if (currentCount >= safeCount) return;
 
     const inserts = [];
@@ -508,9 +486,7 @@ export default function App() {
     }
 
     if (inserts.length > 0) {
-      const { error: insertError } = await supabase
-        .from("courts")
-        .insert(inserts);
+      const { error: insertError } = await supabase.from("courts").insert(inserts);
       if (insertError) throw insertError;
     }
   }
@@ -571,7 +547,6 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      console.error(error);
       setMessage(`Fehler beim Erstellen des Matches: ${error.message}`);
       return;
     }
@@ -600,7 +575,6 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      console.error(error);
       setMessage(`Fehler bei der Player-Zuweisung: ${error.message}`);
       return;
     }
@@ -609,9 +583,7 @@ export default function App() {
   }
 
   async function uploadEventLogo(file) {
-    if (!selectedEvent) {
-      throw new Error("Bitte zuerst ein Event auswählen.");
-    }
+    if (!selectedEvent) throw new Error("Bitte zuerst ein Event auswählen.");
 
     const extension = file.name.split(".").pop()?.toLowerCase() || "png";
     const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "png";
@@ -624,14 +596,9 @@ export default function App() {
         upsert: true,
       });
 
-    if (uploadError) {
-      throw uploadError;
-    }
+    if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage
-      .from("event-logos")
-      .getPublicUrl(filePath);
-
+    const { data } = supabase.storage.from("event-logos").getPublicUrl(filePath);
     return data.publicUrl;
   }
 
@@ -708,9 +675,7 @@ export default function App() {
       ).length;
 
       if (Number(courtCountInput) < currentCourtCount) {
-        setMessage(
-          "Branding gespeichert. Weniger Courts gewählt: bestehende Courts wurden nicht automatisch gelöscht."
-        );
+        setMessage("Branding gespeichert. Weniger Courts gewählt: bestehende Courts wurden nicht automatisch gelöscht.");
       } else {
         setMessage("Branding und Event-Daten gespeichert.");
       }
@@ -720,10 +685,7 @@ export default function App() {
       await loadAdminData();
       return true;
     } catch (error) {
-      console.error(error);
-      setMessage(
-        `Fehler beim Speichern des Branding-Editors: ${error.message || error}`
-      );
+      setMessage(`Fehler beim Speichern des Branding-Editors: ${error.message || error}`);
       return false;
     } finally {
       setSaving(false);
@@ -753,7 +715,6 @@ export default function App() {
       setMessage("Logo entfernt.");
       await loadAdminData();
     } catch (error) {
-      console.error(error);
       setMessage(`Fehler beim Entfernen des Logos: ${error.message || error}`);
     } finally {
       setSaving(false);
@@ -817,7 +778,6 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      console.error("Save-Fehler:", error);
       setMessage(`Fehler beim Speichern: ${error.message}`);
       return;
     }
@@ -864,6 +824,23 @@ export default function App() {
   const activeEventBranding = selectedBrandingObj;
   const headerLogo = activeEventBranding?.logo_url;
 
+  if (window.location.pathname === "/player") {
+    const params = new URLSearchParams(window.location.search);
+    const eventId = params.get("event");
+    const courtId = params.get("court");
+
+    return (
+      <div style={styles.pageCentered}>
+        <div style={styles.authCard}>
+          <h1 style={styles.authTitle}>🎾 Spieler Eingabe</h1>
+          <p><strong>Event:</strong> {eventId}</p>
+          <p><strong>Court:</strong> {courtId}</p>
+          <p style={styles.muted}>QR-Code funktioniert. Hier bauen wir danach die Punkte-Eingabe.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!authReady) {
     return (
       <PageShell>
@@ -880,27 +857,10 @@ export default function App() {
           <h1 style={styles.authTitle}>Login</h1>
           {message && <InfoBox>{message}</InfoBox>}
 
-          <input
-            placeholder="E-Mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-          />
+          <input placeholder="E-Mail" value={email} onChange={(e) => setEmail(e.target.value)} style={styles.input} />
+          <input type="password" placeholder="Passwort" value={password} onChange={(e) => setPassword(e.target.value)} style={styles.input} />
 
-          <input
-            type="password"
-            placeholder="Passwort"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-          />
-
-          <button
-            type="button"
-            onClick={handleLogin}
-            style={styles.primaryButtonFull}
-            disabled={loggingIn}
-          >
+          <button type="button" onClick={handleLogin} style={styles.primaryButtonFull} disabled={loggingIn}>
             {loggingIn ? "Einloggen..." : "Einloggen"}
           </button>
         </div>
@@ -918,9 +878,7 @@ export default function App() {
             <div><strong>User-ID:</strong> {session.user.id}</div>
             <div><strong>E-Mail:</strong> {session.user.email}</div>
           </div>
-          <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>
-            Logout
-          </button>
+          <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>Logout</button>
         </div>
       </PageShell>
     );
@@ -951,10 +909,10 @@ export default function App() {
         </header>
 
         <nav style={styles.tabs}>
-          <button type="button" style={styles.tabActive}>Admin</button>
+          <button type="button" style={adminTab === "admin" ? styles.tabActive : styles.tab} onClick={() => setAdminTab("admin")}>Admin</button>
           <button type="button" style={styles.tab} onClick={openMonitorForEvent}>Monitor</button>
-          <button type="button" style={styles.tab}>QR-Codes</button>
-          <button type="button" style={styles.tab}>Druck</button>
+          <button type="button" style={adminTab === "qr" ? styles.tabActive : styles.tab} onClick={() => setAdminTab("qr")}>QR-Codes</button>
+          <button type="button" style={styles.tab} onClick={() => { setAdminTab("qr"); setTimeout(() => window.print(), 300); }}>Druck</button>
           <button type="button" style={styles.tab} onClick={handleLogout}>Logout</button>
         </nav>
 
@@ -978,401 +936,240 @@ export default function App() {
           </button>
         </section>
 
-        <main style={styles.adminGrid}>
-          <aside style={styles.leftColumn}>
-            <Panel title="Event erstellen" subtitle="Neues Turnier mit Courts anlegen">
-              <FormLabel>Organisation</FormLabel>
-              <select
-                value={String(selectedOrganization || "")}
-                onChange={(e) => setSelectedOrganization(String(e.target.value))}
-                style={styles.input}
-              >
-                <option value="">Organisation wählen</option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={String(org.id)}>
-                    {organizationName(org)}
-                  </option>
-                ))}
-              </select>
+        {adminTab === "qr" && (
+          <QRPrintPanel
+            eventId={selectedEvent}
+            eventTitle={eventName(selectedEventObj)}
+            courts={filteredCourts}
+          />
+        )}
 
-              <FormLabel>Neuer Turniername</FormLabel>
-              <input
-                value={newEventTitle}
-                onChange={(e) => setNewEventTitle(e.target.value)}
-                placeholder="z. B. Waske Open"
-                style={styles.input}
-              />
-
-              <FormLabel>Untertitel</FormLabel>
-              <input
-                value={newEventSubtitle}
-                onChange={(e) => setNewEventSubtitle(e.target.value)}
-                placeholder="optional"
-                style={styles.input}
-              />
-
-              <FormLabel>Ort</FormLabel>
-              <input
-                value={newEventLocation}
-                onChange={(e) => setNewEventLocation(e.target.value)}
-                placeholder="z. B. Frankfurt"
-                style={styles.input}
-              />
-
-              <FormLabel>Anzahl Courts</FormLabel>
-              <input
-                type="number"
-                min="1"
-                value={newCourtCount}
-                onChange={(e) => setNewCourtCount(Number(e.target.value) || 1)}
-                style={styles.input}
-              />
-
-              <button type="button" onClick={createEvent} style={styles.primaryButtonFull} disabled={saving}>
-                {saving ? "Speichern..." : "Event erstellen"}
-              </button>
-            </Panel>
-
-            <Panel title="Match erstellen" subtitle="Match einem Court zuweisen">
-              <FormLabel>Event</FormLabel>
-              <EventSelect
-                events={events}
-                selectedEvent={selectedEvent}
-                setSelectedEvent={setSelectedEvent}
-                setEditorDirty={setEditorDirty}
-                eventName={eventName}
-              />
-
-              <FormLabel>Court</FormLabel>
-              <CourtSelect
-                courts={filteredCourts}
-                selectedCourt={selectedCourt}
-                setSelectedCourt={setSelectedCourt}
-                courtName={courtName}
-              />
-
-              <div style={styles.twoCols}>
-                <div>
-                  <FormLabel>Modus</FormLabel>
-                  <select value={matchMode} onChange={(e) => setMatchMode(e.target.value)} style={styles.input}>
-                    <option value="Einzel">Einzel</option>
-                    <option value="Doppel">Doppel</option>
-                    <option value="Mannschaft">Mannschaft</option>
-                  </select>
-                </div>
-                <div>
-                  <FormLabel>Status</FormLabel>
-                  <input value="planned" readOnly style={styles.inputMuted} />
-                </div>
-              </div>
-
-              <FormLabel>Spieler / Team A</FormLabel>
-              <input value={playerA} onChange={(e) => setPlayerA(e.target.value)} placeholder="Spieler A" style={styles.input} />
-
-              <FormLabel>Spieler / Team B</FormLabel>
-              <input value={playerB} onChange={(e) => setPlayerB(e.target.value)} placeholder="Spieler B" style={styles.input} />
-
-              <button type="button" onClick={createMatch} style={styles.primaryButtonFull} disabled={saving}>
-                {saving ? "Speichern..." : "Match erstellen"}
-              </button>
-            </Panel>
-          </aside>
-
-          <section style={styles.rightColumn}>
-            <Panel title="Admin Branding Editor" subtitle="Look & Feel des Monitors steuern">
-              <div style={styles.editorGrid}>
-                <div>
-                  <FormLabel>Event</FormLabel>
-                  <EventSelect
-                    events={events}
-                    selectedEvent={selectedEvent}
-                    setSelectedEvent={setSelectedEvent}
-                    setEditorDirty={setEditorDirty}
-                    eventName={eventName}
-                  />
-
-                  <FormLabel>Organisation</FormLabel>
-                  <select
-                    value={String(selectedOrganization || "")}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setSelectedOrganization(String(e.target.value));
-                    }}
-                    style={styles.input}
-                  >
-                    <option value="">Organisation wählen</option>
-                    {organizations.map((org) => (
-                      <option key={org.id} value={String(org.id)}>{organizationName(org)}</option>
-                    ))}
-                  </select>
-
-                  <FormLabel>Turniername</FormLabel>
-                  <input
-                    value={eventTitleInput}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setEventTitleInput(e.target.value);
-                    }}
-                    placeholder="z. B. Sommer Open 2026"
-                    style={styles.input}
-                  />
-
-                  <FormLabel>Untertitel</FormLabel>
-                  <input
-                    value={eventSubtitleInput}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setEventSubtitleInput(e.target.value);
-                    }}
-                    placeholder="optional"
-                    style={styles.input}
-                  />
-
-                  <FormLabel>Ort</FormLabel>
-                  <input
-                    value={eventLocationInput}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setEventLocationInput(e.target.value);
-                    }}
-                    placeholder="z. B. Frankfurt"
-                    style={styles.input}
-                  />
-
-                  <FormLabel>Anzahl Courts</FormLabel>
-                  <input
-                    type="number"
-                    min="1"
-                    value={courtCountInput}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setCourtCountInput(Number(e.target.value) || 1);
-                    }}
-                    style={styles.input}
-                  />
-                </div>
-
-                <div>
-                  <FormLabel>Monitor-Titel</FormLabel>
-                  <input
-                    value={monitorTitle}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setMonitorTitle(e.target.value);
-                    }}
-                    placeholder="LIVE SCOREBOARD"
-                    style={styles.input}
-                  />
-
-                  <FormLabel>Monitor-Untertitel</FormLabel>
-                  <input
-                    value={monitorSubtitle}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setMonitorSubtitle(e.target.value);
-                    }}
-                    placeholder="optional"
-                    style={styles.input}
-                  />
-
-                  <div style={styles.colorGrid}>
-                    <ColorField label="Primär" value={primaryColor} onChange={(v) => { setEditorDirty(true); setPrimaryColor(v); }} />
-                    <ColorField label="Akzent" value={accentColor} onChange={(v) => { setEditorDirty(true); setAccentColor(v); }} />
-                    <ColorField label="Text" value={textColor} onChange={(v) => { setEditorDirty(true); setTextColor(v); }} />
-                    <ColorField label="Hintergrund" value={backgroundColor} onChange={(v) => { setEditorDirty(true); setBackgroundColor(v); }} />
-                    <ColorField label="Rahmen" value={borderColor} onChange={(v) => { setEditorDirty(true); setBorderColor(v); }} />
-                  </div>
-
-                  <FormLabel>Hintergrund-Stil</FormLabel>
-                  <select
-                    value={backgroundStyle}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setBackgroundStyle(e.target.value);
-                    }}
-                    style={styles.input}
-                  >
-                    <option value="dark">dark</option>
-                    <option value="light">light</option>
-                    <option value="gradient">gradient</option>
-                  </select>
-
-                  <FormLabel>Sponsor-Text</FormLabel>
-                  <input
-                    value={sponsorText}
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setSponsorText(e.target.value);
-                    }}
-                    placeholder="z. B. GP23 Immobilien präsentiert"
-                    style={styles.input}
-                  />
-
-                  <FormLabel>Logo hochladen</FormLabel>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      setEditorDirty(true);
-                      setLogoFile(e.target.files?.[0] || null);
-                    }}
-                    style={styles.fileInput}
-                  />
-
-                  {logoFile ? <div style={styles.fileNote}>Neue Datei: <strong>{logoFile.name}</strong></div> : null}
-                </div>
-              </div>
-
-              <div style={styles.previewRow}>
-                <div
-                  style={{
-                    ...styles.previewBox,
-                    background:
-                      backgroundStyle === "gradient"
-                        ? `linear-gradient(135deg, ${backgroundColor} 0%, ${accentColor} 100%)`
-                        : backgroundColor,
-                    color: textColor,
-                    border: `2px solid ${borderColor}`,
-                    boxShadow: `0 0 22px ${hexToRgba(borderColor, 0.28)}`,
-                  }}
-                >
-                  <div style={styles.previewHeader}>
-                    {previewLogoSrc ? (
-                      <img
-                        src={previewLogoSrc}
-                        alt="Logo Vorschau"
-                        style={styles.previewLogo}
-                        onError={(e) => (e.currentTarget.style.display = "none")}
-                      />
-                    ) : (
-                      <div style={styles.previewLogoFallback}>TS</div>
-                    )}
-
-                    <div>
-                      <div style={{ ...styles.previewKicker, color: primaryColor }}>
-                        LIVE TENNIS CONTROL
-                      </div>
-
-                      <div style={{ ...styles.previewTitle, color: textColor }}>
-                        {eventTitleInput || "Turniername"}
-                      </div>
-
-                      <div
-                        style={{
-                          ...styles.previewSub,
-                          color: hexToRgba(textColor, 0.78),
-                        }}
-                      >
-                        {monitorSubtitle || eventSubtitleInput || "Monitor Vorschau"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={styles.previewMiniNav}>
-                    <span
-                      style={{
-                        ...styles.previewPill,
-                        borderColor,
-                        color: textColor,
-                        background: hexToRgba(borderColor, 0.18),
-                      }}
-                    >
-                      Alle Matches
-                    </span>
-
-                    <span
-                      style={{
-                        ...styles.previewPill,
-                        borderColor: accentColor,
-                        color: accentColor,
-                        background: hexToRgba(accentColor, 0.18),
-                      }}
-                    >
-                      LIVE
-                    </span>
-                  </div>
-                </div>
-
-                {selectedBrandingObj?.logo_url ? (
-                  <div style={styles.logoPreviewBox}>
-                    <div style={styles.miniLabel}>Aktuelles Logo</div>
-                    <img src={selectedBrandingObj.logo_url} alt="Logo Vorschau" style={styles.logoPreview} />
-                  </div>
-                ) : null}
-              </div>
-
-              <div style={styles.actionRow}>
-                <button type="button" onClick={saveBrandingEditor} style={styles.primaryButton} disabled={saving}>
-                  {saving ? "Speichern..." : "Branding & Event speichern"}
-                </button>
-                <button type="button" onClick={removeEventLogo} style={styles.ghostButton} disabled={saving}>
-                  Logo entfernen
-                </button>
-              </div>
-            </Panel>
-
-            <div style={styles.bottomGrid}>
-              <Panel title="Player zuweisen" subtitle="Player-Zugang an Court koppeln">
-                <FormLabel>Player</FormLabel>
-                <select value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)} style={styles.input}>
-                  <option value="">Player wählen</option>
-                  {players.map((p) => (
-                    <option key={p.id} value={p.id}>{p.full_name || p.id}</option>
+        {adminTab === "admin" && (
+          <main style={styles.adminGrid}>
+            <aside style={styles.leftColumn}>
+              <Panel title="Event erstellen" subtitle="Neues Turnier mit Courts anlegen">
+                <FormLabel>Organisation</FormLabel>
+                <select value={String(selectedOrganization || "")} onChange={(e) => setSelectedOrganization(String(e.target.value))} style={styles.input}>
+                  <option value="">Organisation wählen</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={String(org.id)}>{organizationName(org)}</option>
                   ))}
                 </select>
 
-                <FormLabel>Event</FormLabel>
-                <EventSelect
-                  events={events}
-                  selectedEvent={selectedEvent}
-                  setSelectedEvent={setSelectedEvent}
-                  setEditorDirty={setEditorDirty}
-                  eventName={eventName}
-                />
+                <FormLabel>Neuer Turniername</FormLabel>
+                <input value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)} placeholder="z. B. Waske Open" style={styles.input} />
 
-                <FormLabel>Court</FormLabel>
-                <CourtSelect
-                  courts={filteredCourts}
-                  selectedCourt={selectedCourt}
-                  setSelectedCourt={setSelectedCourt}
-                  courtName={courtName}
-                />
+                <FormLabel>Untertitel</FormLabel>
+                <input value={newEventSubtitle} onChange={(e) => setNewEventSubtitle(e.target.value)} placeholder="optional" style={styles.input} />
 
-                <div style={styles.selectionNote}>
-                  <div><strong>Event:</strong> {eventName(selectedEventObj)}</div>
-                  <div><strong>Court:</strong> {courtName(selectedCourtObj)}</div>
-                </div>
+                <FormLabel>Ort</FormLabel>
+                <input value={newEventLocation} onChange={(e) => setNewEventLocation(e.target.value)} placeholder="z. B. Frankfurt" style={styles.input} />
 
-                <button type="button" onClick={assignPlayer} style={styles.primaryButtonFull} disabled={saving}>
-                  {saving ? "Speichern..." : "Player zuweisen"}
+                <FormLabel>Anzahl Courts</FormLabel>
+                <input type="number" min="1" value={newCourtCount} onChange={(e) => setNewCourtCount(Number(e.target.value) || 1)} style={styles.input} />
+
+                <button type="button" onClick={createEvent} style={styles.primaryButtonFull} disabled={saving}>
+                  {saving ? "Speichern..." : "Event erstellen"}
                 </button>
               </Panel>
 
-              <Panel title="Vorhandene Matches" subtitle="Aktueller Stand des Events">
-                {filteredMatchesByEvent.length === 0 ? (
-                  <div style={styles.emptyText}>Keine Matches für dieses Event vorhanden.</div>
-                ) : (
-                  <div style={styles.matchList}>
-                    {filteredMatchesByEvent.map((m) => {
-                      const courtObj = courts.find((c) => String(c.id) === String(m.court_id));
-                      return (
-                        <div key={m.id} style={styles.matchItem}>
-                          <div style={styles.matchItemTop}>
-                            <strong>{m.player_a || "-"}</strong>
-                            <span style={styles.vs}>vs</span>
-                            <strong>{m.player_b || "-"}</strong>
-                          </div>
-                          <div style={styles.matchMeta}>{courtName(courtObj)} · {m.status} · {m.mode}</div>
-                          <div style={styles.matchScore}>S1 {m.set1_a ?? 0}:{m.set1_b ?? 0} · S2 {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB {m.set3_a ?? 0}:{m.set3_b ?? 0}</div>
-                        </div>
-                      );
-                    })}
+              <Panel title="Match erstellen" subtitle="Match einem Court zuweisen">
+                <FormLabel>Event</FormLabel>
+                <EventSelect events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} setEditorDirty={setEditorDirty} eventName={eventName} />
+
+                <FormLabel>Court</FormLabel>
+                <CourtSelect courts={filteredCourts} selectedCourt={selectedCourt} setSelectedCourt={setSelectedCourt} courtName={courtName} />
+
+                <div style={styles.twoCols}>
+                  <div>
+                    <FormLabel>Modus</FormLabel>
+                    <select value={matchMode} onChange={(e) => setMatchMode(e.target.value)} style={styles.input}>
+                      <option value="Einzel">Einzel</option>
+                      <option value="Doppel">Doppel</option>
+                      <option value="Mannschaft">Mannschaft</option>
+                    </select>
                   </div>
-                )}
+                  <div>
+                    <FormLabel>Status</FormLabel>
+                    <input value="planned" readOnly style={styles.inputMuted} />
+                  </div>
+                </div>
+
+                <FormLabel>Spieler / Team A</FormLabel>
+                <input value={playerA} onChange={(e) => setPlayerA(e.target.value)} placeholder="Spieler A" style={styles.input} />
+
+                <FormLabel>Spieler / Team B</FormLabel>
+                <input value={playerB} onChange={(e) => setPlayerB(e.target.value)} placeholder="Spieler B" style={styles.input} />
+
+                <button type="button" onClick={createMatch} style={styles.primaryButtonFull} disabled={saving}>
+                  {saving ? "Speichern..." : "Match erstellen"}
+                </button>
               </Panel>
-            </div>
-          </section>
-        </main>
+            </aside>
+
+            <section style={styles.rightColumn}>
+              <Panel title="Admin Branding Editor" subtitle="Look & Feel des Monitors steuern">
+                <div style={styles.editorGrid}>
+                  <div>
+                    <FormLabel>Event</FormLabel>
+                    <EventSelect events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} setEditorDirty={setEditorDirty} eventName={eventName} />
+
+                    <FormLabel>Organisation</FormLabel>
+                    <select value={String(selectedOrganization || "")} onChange={(e) => { setEditorDirty(true); setSelectedOrganization(String(e.target.value)); }} style={styles.input}>
+                      <option value="">Organisation wählen</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={String(org.id)}>{organizationName(org)}</option>
+                      ))}
+                    </select>
+
+                    <FormLabel>Turniername</FormLabel>
+                    <input value={eventTitleInput} onChange={(e) => { setEditorDirty(true); setEventTitleInput(e.target.value); }} placeholder="z. B. Sommer Open 2026" style={styles.input} />
+
+                    <FormLabel>Untertitel</FormLabel>
+                    <input value={eventSubtitleInput} onChange={(e) => { setEditorDirty(true); setEventSubtitleInput(e.target.value); }} placeholder="optional" style={styles.input} />
+
+                    <FormLabel>Ort</FormLabel>
+                    <input value={eventLocationInput} onChange={(e) => { setEditorDirty(true); setEventLocationInput(e.target.value); }} placeholder="z. B. Frankfurt" style={styles.input} />
+
+                    <FormLabel>Anzahl Courts</FormLabel>
+                    <input type="number" min="1" value={courtCountInput} onChange={(e) => { setEditorDirty(true); setCourtCountInput(Number(e.target.value) || 1); }} style={styles.input} />
+                  </div>
+
+                  <div>
+                    <FormLabel>Monitor-Titel</FormLabel>
+                    <input value={monitorTitle} onChange={(e) => { setEditorDirty(true); setMonitorTitle(e.target.value); }} placeholder="LIVE SCOREBOARD" style={styles.input} />
+
+                    <FormLabel>Monitor-Untertitel</FormLabel>
+                    <input value={monitorSubtitle} onChange={(e) => { setEditorDirty(true); setMonitorSubtitle(e.target.value); }} placeholder="optional" style={styles.input} />
+
+                    <div style={styles.colorGrid}>
+                      <ColorField label="Primär" value={primaryColor} onChange={(v) => { setEditorDirty(true); setPrimaryColor(v); }} />
+                      <ColorField label="Akzent" value={accentColor} onChange={(v) => { setEditorDirty(true); setAccentColor(v); }} />
+                      <ColorField label="Text" value={textColor} onChange={(v) => { setEditorDirty(true); setTextColor(v); }} />
+                      <ColorField label="Hintergrund" value={backgroundColor} onChange={(v) => { setEditorDirty(true); setBackgroundColor(v); }} />
+                      <ColorField label="Rahmen" value={borderColor} onChange={(v) => { setEditorDirty(true); setBorderColor(v); }} />
+                    </div>
+
+                    <FormLabel>Hintergrund-Stil</FormLabel>
+                    <select value={backgroundStyle} onChange={(e) => { setEditorDirty(true); setBackgroundStyle(e.target.value); }} style={styles.input}>
+                      <option value="dark">dark</option>
+                      <option value="light">light</option>
+                      <option value="gradient">gradient</option>
+                    </select>
+
+                    <FormLabel>Sponsor-Text</FormLabel>
+                    <input value={sponsorText} onChange={(e) => { setEditorDirty(true); setSponsorText(e.target.value); }} placeholder="z. B. GP23 Immobilien präsentiert" style={styles.input} />
+
+                    <FormLabel>Logo hochladen</FormLabel>
+                    <input type="file" accept="image/*" onChange={(e) => { setEditorDirty(true); setLogoFile(e.target.files?.[0] || null); }} style={styles.fileInput} />
+
+                    {logoFile ? <div style={styles.fileNote}>Neue Datei: <strong>{logoFile.name}</strong></div> : null}
+                  </div>
+                </div>
+
+                <div style={styles.previewRow}>
+                  <div
+                    style={{
+                      ...styles.previewBox,
+                      background:
+                        backgroundStyle === "gradient"
+                          ? `linear-gradient(135deg, ${backgroundColor} 0%, ${accentColor} 100%)`
+                          : backgroundColor,
+                      color: textColor,
+                      border: `2px solid ${borderColor}`,
+                      boxShadow: `0 0 22px ${hexToRgba(borderColor, 0.28)}`,
+                    }}
+                  >
+                    <div style={styles.previewHeader}>
+                      {previewLogoSrc ? (
+                        <img src={previewLogoSrc} alt="Logo Vorschau" style={styles.previewLogo} onError={(e) => (e.currentTarget.style.display = "none")} />
+                      ) : (
+                        <div style={styles.previewLogoFallback}>TS</div>
+                      )}
+
+                      <div>
+                        <div style={{ ...styles.previewKicker, color: primaryColor }}>LIVE TENNIS CONTROL</div>
+                        <div style={{ ...styles.previewTitle, color: textColor }}>{eventTitleInput || "Turniername"}</div>
+                        <div style={{ ...styles.previewSub, color: hexToRgba(textColor, 0.78) }}>
+                          {monitorSubtitle || eventSubtitleInput || "Monitor Vorschau"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={styles.previewMiniNav}>
+                      <span style={{ ...styles.previewPill, borderColor, color: textColor, background: hexToRgba(borderColor, 0.18) }}>Alle Matches</span>
+                      <span style={{ ...styles.previewPill, borderColor: accentColor, color: accentColor, background: hexToRgba(accentColor, 0.18) }}>LIVE</span>
+                    </div>
+                  </div>
+
+                  {selectedBrandingObj?.logo_url ? (
+                    <div style={styles.logoPreviewBox}>
+                      <div style={styles.miniLabel}>Aktuelles Logo</div>
+                      <img src={selectedBrandingObj.logo_url} alt="Logo Vorschau" style={styles.logoPreview} />
+                    </div>
+                  ) : null}
+                </div>
+
+                <div style={styles.actionRow}>
+                  <button type="button" onClick={saveBrandingEditor} style={styles.primaryButton} disabled={saving}>
+                    {saving ? "Speichern..." : "Branding & Event speichern"}
+                  </button>
+                  <button type="button" onClick={removeEventLogo} style={styles.ghostButton} disabled={saving}>Logo entfernen</button>
+                </div>
+              </Panel>
+
+              <div style={styles.bottomGrid}>
+                <Panel title="Player zuweisen" subtitle="Player-Zugang an Court koppeln">
+                  <FormLabel>Player</FormLabel>
+                  <select value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)} style={styles.input}>
+                    <option value="">Player wählen</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>{p.full_name || p.id}</option>
+                    ))}
+                  </select>
+
+                  <FormLabel>Event</FormLabel>
+                  <EventSelect events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} setEditorDirty={setEditorDirty} eventName={eventName} />
+
+                  <FormLabel>Court</FormLabel>
+                  <CourtSelect courts={filteredCourts} selectedCourt={selectedCourt} setSelectedCourt={setSelectedCourt} courtName={courtName} />
+
+                  <div style={styles.selectionNote}>
+                    <div><strong>Event:</strong> {eventName(selectedEventObj)}</div>
+                    <div><strong>Court:</strong> {courtName(selectedCourtObj)}</div>
+                  </div>
+
+                  <button type="button" onClick={assignPlayer} style={styles.primaryButtonFull} disabled={saving}>
+                    {saving ? "Speichern..." : "Player zuweisen"}
+                  </button>
+                </Panel>
+
+                <Panel title="Vorhandene Matches" subtitle="Aktueller Stand des Events">
+                  {filteredMatchesByEvent.length === 0 ? (
+                    <div style={styles.emptyText}>Keine Matches für dieses Event vorhanden.</div>
+                  ) : (
+                    <div style={styles.matchList}>
+                      {filteredMatchesByEvent.map((m) => {
+                        const courtObj = courts.find((c) => String(c.id) === String(m.court_id));
+                        return (
+                          <div key={m.id} style={styles.matchItem}>
+                            <div style={styles.matchItemTop}>
+                              <strong>{m.player_a || "-"}</strong>
+                              <span style={styles.vs}>vs</span>
+                              <strong>{m.player_b || "-"}</strong>
+                            </div>
+                            <div style={styles.matchMeta}>{courtName(courtObj)} · {m.status} · {m.mode}</div>
+                            <div style={styles.matchScore}>S1 {m.set1_a ?? 0}:{m.set1_b ?? 0} · S2 {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB {m.set3_a ?? 0}:{m.set3_b ?? 0}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Panel>
+              </div>
+            </section>
+          </main>
+        )}
       </div>
     );
   }
@@ -1434,6 +1231,51 @@ export default function App() {
         <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>Logout</button>
       </div>
     </PageShell>
+  );
+}
+
+function QRPrintPanel({ eventId, eventTitle, courts }) {
+  const baseUrl = window.location.origin;
+
+  const buildUrl = (courtId) => {
+    return `${baseUrl}/player?event=${eventId}&court=${courtId}`;
+  };
+
+  if (!eventId) {
+    return (
+      <section style={styles.panel}>
+        <h2 style={styles.panelCardTitle}>QR-Codes</h2>
+        <p style={styles.muted}>Bitte zuerst ein Event auswählen.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section style={styles.qrPanel}>
+      <div style={styles.qrHeader}>
+        <div>
+          <h2 style={styles.panelCardTitle}>QR-Codes</h2>
+          <div style={styles.panelCardSub}>{eventTitle}</div>
+        </div>
+
+        <button type="button" onClick={() => window.print()} style={styles.primaryButton}>
+          QR-Codes drucken
+        </button>
+      </div>
+
+      <div style={styles.qrGrid}>
+        {courts.map((court) => (
+          <div key={court.id} style={styles.qrCard}>
+            <h3 style={styles.qrCourtName}>{court.name}</h3>
+
+            <QRCodeSVG value={buildUrl(court.id)} size={190} level="H" includeMargin />
+
+            <div style={styles.qrText}>Spieler-Login für diesen Platz</div>
+            <div style={styles.qrSmallUrl}>{buildUrl(court.id)}</div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1771,11 +1613,7 @@ const styles = {
     background: "linear-gradient(135deg, rgba(4,12,31,0.96), rgba(18,30,61,0.92))",
     border: "1px solid rgba(107,231,255,0.18)",
   },
-  previewHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-  },
+  previewHeader: { display: "flex", alignItems: "center", gap: 16 },
   previewLogo: {
     width: 72,
     height: 72,
@@ -1795,12 +1633,7 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.16)",
     fontWeight: 900,
   },
-  previewMiniNav: {
-    display: "flex",
-    gap: 10,
-    marginTop: 18,
-    flexWrap: "wrap",
-  },
+  previewMiniNav: { display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" },
   previewPill: {
     display: "inline-block",
     padding: "8px 12px",
@@ -1841,8 +1674,25 @@ const styles = {
     color: "#ffffff",
     fontWeight: 800,
   },
-  authCard: { padding: 30, borderRadius: 22, background: "rgba(6,15,38,0.86)", border: "1px solid rgba(255,255,255,0.12)", width: "100%", boxSizing: "border-box", textAlign: "center" },
-  authCardWide: { padding: 30, borderRadius: 22, background: "rgba(6,15,38,0.86)", border: "1px solid rgba(255,255,255,0.12)", width: "100%", maxWidth: 1120, boxSizing: "border-box", textAlign: "center" },
+  authCard: {
+    padding: 30,
+    borderRadius: 22,
+    background: "rgba(6,15,38,0.86)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    width: "100%",
+    boxSizing: "border-box",
+    textAlign: "center",
+  },
+  authCardWide: {
+    padding: 30,
+    borderRadius: 22,
+    background: "rgba(6,15,38,0.86)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    width: "100%",
+    maxWidth: 1120,
+    boxSizing: "border-box",
+    textAlign: "center",
+  },
   authKicker: { color: "#00ff9d", fontSize: 12, letterSpacing: 3, fontWeight: 900, marginBottom: 8 },
   authTitle: { margin: 0, marginBottom: 16, fontSize: 36, fontWeight: 900 },
   muted: { color: "#b9c8e6" },
@@ -1854,4 +1704,50 @@ const styles = {
   scoreCardTitle: { fontSize: 22, fontWeight: 900, marginBottom: 18 },
   playerRowControls: { display: "flex", alignItems: "center", justifyContent: "center", gap: 10 },
   scoreNumber: { minWidth: 70, padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.22)", fontSize: 28, fontWeight: 900, color: "#6be7ff" },
+
+  qrPanel: {
+    marginTop: 14,
+    borderRadius: 20,
+    background: "rgba(6,15,38,0.82)",
+    border: "1px solid rgba(255,255,255,0.11)",
+    padding: 18,
+  },
+  qrHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  qrGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+    gap: 18,
+  },
+  qrCard: {
+    background: "#ffffff",
+    color: "#061226",
+    borderRadius: 18,
+    padding: 22,
+    textAlign: "center",
+    border: "2px solid #061226",
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  },
+  qrCourtName: {
+    margin: "0 0 16px 0",
+    fontSize: 22,
+    fontWeight: 900,
+  },
+  qrText: {
+    marginTop: 14,
+    fontWeight: 800,
+    fontSize: 14,
+  },
+  qrSmallUrl: {
+    marginTop: 10,
+    fontSize: 10,
+    wordBreak: "break-all",
+    opacity: 0.75,
+  },
 };
