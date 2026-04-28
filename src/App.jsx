@@ -1266,8 +1266,10 @@ function PlayerQRPage() {
       return;
     }
 
-    await loadPlayerPageData();
-  }
+setMatch(prev => ({
+  ...prev,
+  ...payload
+}));  }
 
   function plus(field) {
     if (!match) return;
