@@ -1144,6 +1144,57 @@ function PlayerQRPage() {
     loadPlayerPageData();
   }, [eventId, courtId]);
 
+  function isSetFinished(a, b) {
+    const x = Number(a || 0);
+    const y = Number(b || 0);
+
+    if (x >= 6 || y >= 6) {
+      if (Math.abs(x - y) >= 2) return true;
+      if (x === 7 || y === 7) return true;
+    }
+
+    return false;
+  }
+
+  function isMatchTiebreakFinished(a, b) {
+    const x = Number(a || 0);
+    const y = Number(b || 0);
+
+    return (x >= 10 || y >= 10) && Math.abs(x - y) >= 2;
+  }
+
+  function getSetWinner(a, b) {
+    const x = Number(a || 0);
+    const y = Number(b || 0);
+
+    if (!isSetFinished(x, y)) return null;
+    return x > y ? "A" : "B";
+  }
+
+  function getMatchScoreState(currentMatch) {
+    const s1Winner = getSetWinner(currentMatch.set1_a, currentMatch.set1_b);
+    const s2Winner = getSetWinner(currentMatch.set2_a, currentMatch.set2_b);
+
+    const setsA = [s1Winner, s2Winner].filter((w) => w === "A").length;
+    const setsB = [s1Winner, s2Winner].filter((w) => w === "B").length;
+
+    const set1Finished = Boolean(s1Winner);
+    const set2Finished = Boolean(s2Winner);
+
+    const needsMatchTiebreak = set1Finished && set2Finished && setsA === 1 && setsB === 1;
+    const matchWonAfterTwoSets = set1Finished && set2Finished && (setsA === 2 || setsB === 2);
+    const matchTiebreakFinished = isMatchTiebreakFinished(currentMatch.set3_a, currentMatch.set3_b);
+
+    return {
+      set1Finished,
+      set2Finished,
+      needsMatchTiebreak,
+      matchWonAfterTwoSets,
+      matchTiebreakFinished,
+      matchFinished: matchWonAfterTwoSets || matchTiebreakFinished,
+    };
+  }
+
   async function loadPlayerPageData() {
     setLoadingMatch(true);
     setPlayerMessage("");
@@ -1220,16 +1271,162 @@ function PlayerQRPage() {
 
   function plus(field) {
     if (!match) return;
-    updateMatch({ [field]: Number(match[field] || 0) + 1 });
+
+    const stateBefore = getMatchScoreState(match);
+
+    if (stateBefore.matchFinished || match.status === "finished") {
+      setPlayerMessage("Das Match ist bereits abgeschlossen.");
+      return;
+    }
+
+    let s1a = Number(match.set1_a || 0);
+    let s1b = Number(match.set1_b || 0);
+    let s2a = Number(match.set2_a || 0);
+    let s2b = Number(match.set2_b || 0);
+    let s3a = Number(match.set3_a || 0);
+    let s3b = Number(match.set3_b || 0);
+
+    if (!stateBefore.set1Finished) {
+      if (field !== "set1_a" && field !== "set1_b") {
+        setPlayerMessage("Bitte zuerst Satz 1 abschließen.");
+        return;
+      }
+
+      if (field === "set1_a") s1a += 1;
+      if (field === "set1_b") s1b += 1;
+
+      return updateMatch({
+        set1_a: s1a,
+        set1_b: s1b,
+        status: "live",
+      });
+    }
+
+    if (!stateBefore.set2Finished) {
+      if (field !== "set2_a" && field !== "set2_b") {
+        setPlayerMessage("Bitte zuerst Satz 2 abschließen.");
+        return;
+      }
+
+      if (field === "set2_a") s2a += 1;
+      if (field === "set2_b") s2b += 1;
+
+      const tempMatch = {
+        ...match,
+        set2_a: s2a,
+        set2_b: s2b,
+      };
+
+      const stateAfter = getMatchScoreState(tempMatch);
+
+      return updateMatch({
+        set2_a: s2a,
+        set2_b: s2b,
+        status: stateAfter.matchWonAfterTwoSets ? "finished" : "live",
+      });
+    }
+
+    const stateAfterTwoSets = getMatchScoreState({
+      ...match,
+      set1_a: s1a,
+      set1_b: s1b,
+      set2_a: s2a,
+      set2_b: s2b,
+    });
+
+    if (!stateAfterTwoSets.needsMatchTiebreak) {
+      return updateMatch({
+        status: "finished",
+      });
+    }
+
+    if (field !== "set3_a" && field !== "set3_b") {
+      setPlayerMessage("Jetzt ist der Match-Tiebreak dran.");
+      return;
+    }
+
+    if (field === "set3_a") s3a += 1;
+    if (field === "set3_b") s3b += 1;
+
+    const mtbFinished = isMatchTiebreakFinished(s3a, s3b);
+
+    return updateMatch({
+      set3_a: s3a,
+      set3_b: s3b,
+      status: mtbFinished ? "finished" : "live",
+    });
   }
 
   function minus(field) {
     if (!match) return;
-    updateMatch({ [field]: Math.max(0, Number(match[field] || 0) - 1) });
+
+    if (match.status === "finished") {
+      setPlayerMessage("Das Match ist abgeschlossen. Rückgängig ist gesperrt.");
+      return;
+    }
+
+    const state = getMatchScoreState(match);
+
+    if ((field === "set1_a" || field === "set1_b") && state.set1Finished) {
+      setPlayerMessage("Satz 1 ist abgeschlossen.");
+      return;
+    }
+
+    if ((field === "set2_a" || field === "set2_b") && state.set2Finished) {
+      setPlayerMessage("Satz 2 ist abgeschlossen.");
+      return;
+    }
+
+    if ((field === "set3_a" || field === "set3_b") && state.matchTiebreakFinished) {
+      setPlayerMessage("Der Match-Tiebreak ist abgeschlossen.");
+      return;
+    }
+
+    updateMatch({
+      [field]: Math.max(0, Number(match[field] || 0) - 1),
+    });
   }
 
   function setStatus(status) {
     updateMatch({ status });
+  }
+
+  function getActiveHint() {
+    if (!match) return "";
+
+    const state = getMatchScoreState(match);
+
+    if (match.status === "finished" || state.matchFinished) {
+      return "Match abgeschlossen.";
+    }
+
+    if (!state.set1Finished) {
+      return "Aktuell: Satz 1";
+    }
+
+    if (!state.set2Finished) {
+      return "Aktuell: Satz 2";
+    }
+
+    if (state.needsMatchTiebreak) {
+      return "Aktuell: Match-Tiebreak bis 10 mit 2 Punkten Vorsprung";
+    }
+
+    return "Match abgeschlossen.";
+  }
+
+  function isScoreCardLocked(setNumber) {
+    if (!match) return true;
+
+    const state = getMatchScoreState(match);
+
+    if (match.status === "finished" || state.matchFinished) return true;
+
+    if (setNumber === 1) return state.set1Finished;
+    if (setNumber === 2) return !state.set1Finished || state.set2Finished;
+    if (setNumber === 3) return !state.set1Finished || !state.set2Finished || !state.needsMatchTiebreak;
+
+    return true;
   }
 
   return (
@@ -1273,6 +1470,10 @@ function PlayerQRPage() {
               <div style={styles.muted}>
                 Status: <strong>{match.status || "-"}</strong>
               </div>
+
+              <div style={{ marginTop: 12, fontWeight: 900, color: "#6be7ff" }}>
+                {getActiveHint()}
+              </div>
             </div>
 
             <div style={styles.statusButtonRow}>
@@ -1302,41 +1503,47 @@ function PlayerQRPage() {
             </div>
 
             <div style={styles.scoreGridPlayer}>
-              <ScoreCard
-                title="Satz 1"
-                leftLabel={match.player_a || "A"}
-                rightLabel={match.player_b || "B"}
-                leftValue={match.set1_a || 0}
-                rightValue={match.set1_b || 0}
-                onLeftPlus={() => plus("set1_a")}
-                onLeftMinus={() => minus("set1_a")}
-                onRightPlus={() => plus("set1_b")}
-                onRightMinus={() => minus("set1_b")}
-              />
+              <div style={{ opacity: isScoreCardLocked(1) ? 0.45 : 1 }}>
+                <ScoreCard
+                  title="Satz 1"
+                  leftLabel={match.player_a || "A"}
+                  rightLabel={match.player_b || "B"}
+                  leftValue={match.set1_a || 0}
+                  rightValue={match.set1_b || 0}
+                  onLeftPlus={() => plus("set1_a")}
+                  onLeftMinus={() => minus("set1_a")}
+                  onRightPlus={() => plus("set1_b")}
+                  onRightMinus={() => minus("set1_b")}
+                />
+              </div>
 
-              <ScoreCard
-                title="Satz 2"
-                leftLabel={match.player_a || "A"}
-                rightLabel={match.player_b || "B"}
-                leftValue={match.set2_a || 0}
-                rightValue={match.set2_b || 0}
-                onLeftPlus={() => plus("set2_a")}
-                onLeftMinus={() => minus("set2_a")}
-                onRightPlus={() => plus("set2_b")}
-                onRightMinus={() => minus("set2_b")}
-              />
+              <div style={{ opacity: isScoreCardLocked(2) ? 0.45 : 1 }}>
+                <ScoreCard
+                  title="Satz 2"
+                  leftLabel={match.player_a || "A"}
+                  rightLabel={match.player_b || "B"}
+                  leftValue={match.set2_a || 0}
+                  rightValue={match.set2_b || 0}
+                  onLeftPlus={() => plus("set2_a")}
+                  onLeftMinus={() => minus("set2_a")}
+                  onRightPlus={() => plus("set2_b")}
+                  onRightMinus={() => minus("set2_b")}
+                />
+              </div>
 
-              <ScoreCard
-                title="MTB"
-                leftLabel={match.player_a || "A"}
-                rightLabel={match.player_b || "B"}
-                leftValue={match.set3_a || 0}
-                rightValue={match.set3_b || 0}
-                onLeftPlus={() => plus("set3_a")}
-                onLeftMinus={() => minus("set3_a")}
-                onRightPlus={() => plus("set3_b")}
-                onRightMinus={() => minus("set3_b")}
-              />
+              <div style={{ opacity: isScoreCardLocked(3) ? 0.45 : 1 }}>
+                <ScoreCard
+                  title="Match-Tiebreak"
+                  leftLabel={match.player_a || "A"}
+                  rightLabel={match.player_b || "B"}
+                  leftValue={match.set3_a || 0}
+                  rightValue={match.set3_b || 0}
+                  onLeftPlus={() => plus("set3_a")}
+                  onLeftMinus={() => minus("set3_a")}
+                  onRightPlus={() => plus("set3_b")}
+                  onRightMinus={() => minus("set3_b")}
+                />
+              </div>
             </div>
 
             <button
@@ -1352,7 +1559,7 @@ function PlayerQRPage() {
       </div>
     </div>
   );
-}
+}}
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
 
