@@ -1303,7 +1303,6 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
             <h3 style={styles.qrCourtName}>{court.name}</h3>
             <QRCodeSVG value={buildUrl(court.id)} size={190} level="H" includeMargin />
             <div style={styles.qrText}>Spieler-Login für diesen Platz</div>
-            <div style={styles.qrSmallUrl}>{buildUrl(court.id)}</div>
           </div>
         ))}
       </div>
