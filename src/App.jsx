@@ -8,15 +8,17 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
 
   const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [fullName, setFullName] = useState("");
-const [authMode, setAuthMode] = useState("login");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [authMode, setAuthMode] = useState("login");
+
   const [message, setMessage] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [organizations, setOrganizations] = useState([]);
   const [events, setEvents] = useState([]);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const [courts, setCourts] = useState([]);
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -94,6 +96,7 @@ const [authMode, setAuthMode] = useState("login");
       setPlayerMatch(null);
       setOrganizations([]);
       setEvents([]);
+      setPendingUsers([]);
       setCourts([]);
       setPlayers([]);
       setMatches([]);
@@ -107,8 +110,14 @@ const [authMode, setAuthMode] = useState("login");
   useEffect(() => {
     if (!profile) return;
 
-    if (profile.role === "admin") loadAdminData();
-    if (profile.role === "player") loadPlayerData();
+    if (profile.role === "admin") {
+      loadAdminData();
+      loadPendingUsers();
+    }
+
+    if (profile.role === "player") {
+      loadPlayerData();
+    }
   }, [profile]);
 
   useEffect(() => {
@@ -167,6 +176,7 @@ const [authMode, setAuthMode] = useState("login");
     const eventCourts = courts.filter(
       (c) => String(c.event_id) === String(selectedEvent)
     );
+
     setCourtCountInput(eventCourts.length || 1);
 
     if (currentEvent.organization_id) {
@@ -222,152 +232,186 @@ const [authMode, setAuthMode] = useState("login");
   }
 
   async function loadAdminData() {
-  setMessage("");
+    setMessage("");
 
-  if (!session?.user?.id) {
-    setMessage("Kein Admin-User gefunden. Bitte neu einloggen.");
-    return;
-  }
+    if (!session?.user?.id) {
+      setMessage("Kein Admin-User gefunden. Bitte neu einloggen.");
+      return;
+    }
 
-  const userId = session.user.id;
+    const userId = session.user.id;
 
-  const [orgRes, eventsRes, playersRes] = await Promise.all([
-    supabase
-      .from("organizations")
-      .select("*")
-      .order("created_at", { ascending: true }),
-
-    supabase
-      .from("events")
-      .select("*")
-      .eq("admin_id", userId)
-      .order("created_at", { ascending: false }),
-
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "player"),
-  ]);
-
-  if (orgRes.error) {
-    setMessage(`Fehler beim Laden der Organisationen: ${orgRes.error.message}`);
-    return;
-  }
-
-  if (eventsRes.error) {
-    setMessage(`Fehler beim Laden der Events: ${eventsRes.error.message}`);
-    return;
-  }
-
-  if (playersRes.error) {
-    setMessage(`Fehler beim Laden der Player: ${playersRes.error.message}`);
-    return;
-  }
-
-  const loadedOrganizations = orgRes.data || [];
-  const loadedEvents = eventsRes.data || [];
-  const eventIds = loadedEvents.map((event) => event.id);
-
-  let courtsRes = { data: [], error: null };
-  let matchesRes = { data: [], error: null };
-  let brandingRes = { data: [], error: null };
-
-  if (eventIds.length > 0) {
-    [courtsRes, matchesRes, brandingRes] = await Promise.all([
+    const [orgRes, eventsRes, playersRes] = await Promise.all([
       supabase
-        .from("courts")
+        .from("organizations")
         .select("*")
-        .in("event_id", eventIds)
-        .order("sort_order", { ascending: true }),
+        .order("created_at", { ascending: true }),
 
       supabase
-        .from("matches")
+        .from("events")
         .select("*")
-        .in("event_id", eventIds)
+        .eq("admin_id", userId)
         .order("created_at", { ascending: false }),
 
       supabase
-        .from("branding_settings")
+        .from("profiles")
         .select("*")
-        .in("event_id", eventIds),
+        .eq("role", "player"),
     ]);
-  }
 
-  if (courtsRes.error) {
-    setMessage(`Fehler beim Laden der Courts: ${courtsRes.error.message}`);
-    return;
-  }
+    if (orgRes.error) {
+      setMessage(`Fehler beim Laden der Organisationen: ${orgRes.error.message}`);
+      return;
+    }
 
-  if (matchesRes.error) {
-    setMessage(`Fehler beim Laden der Matches: ${matchesRes.error.message}`);
-    return;
-  }
+    if (eventsRes.error) {
+      setMessage(`Fehler beim Laden der Events: ${eventsRes.error.message}`);
+      return;
+    }
 
-  if (brandingRes.error) {
-    setMessage(`Fehler beim Laden des Brandings: ${brandingRes.error.message}`);
-    return;
-  }
+    if (playersRes.error) {
+      setMessage(`Fehler beim Laden der Player: ${playersRes.error.message}`);
+      return;
+    }
 
-  setOrganizations(loadedOrganizations);
-  setEvents(loadedEvents);
-  setCourts(courtsRes.data || []);
-  setPlayers(playersRes.data || []);
-  setMatches(matchesRes.data || []);
-  setBrandingSettings(brandingRes.data || []);
+    const loadedOrganizations = orgRes.data || [];
+    const loadedEvents = eventsRes.data || [];
+    const eventIds = loadedEvents.map((event) => event.id);
 
-  if (loadedOrganizations.length > 0) {
-    const orgStillExists = loadedOrganizations.some(
-      (org) => String(org.id) === String(selectedOrganization)
+    let courtsRes = { data: [], error: null };
+    let matchesRes = { data: [], error: null };
+    let brandingRes = { data: [], error: null };
+
+    if (eventIds.length > 0) {
+      [courtsRes, matchesRes, brandingRes] = await Promise.all([
+        supabase
+          .from("courts")
+          .select("*")
+          .in("event_id", eventIds)
+          .order("sort_order", { ascending: true }),
+
+        supabase
+          .from("matches")
+          .select("*")
+          .in("event_id", eventIds)
+          .order("created_at", { ascending: false }),
+
+        supabase
+          .from("branding_settings")
+          .select("*")
+          .in("event_id", eventIds),
+      ]);
+    }
+
+    if (courtsRes.error) {
+      setMessage(`Fehler beim Laden der Courts: ${courtsRes.error.message}`);
+      return;
+    }
+
+    if (matchesRes.error) {
+      setMessage(`Fehler beim Laden der Matches: ${matchesRes.error.message}`);
+      return;
+    }
+
+    if (brandingRes.error) {
+      setMessage(`Fehler beim Laden des Brandings: ${brandingRes.error.message}`);
+      return;
+    }
+
+    setOrganizations(loadedOrganizations);
+    setEvents(loadedEvents);
+    setCourts(courtsRes.data || []);
+    setPlayers(playersRes.data || []);
+    setMatches(matchesRes.data || []);
+    setBrandingSettings(brandingRes.data || []);
+
+    if (loadedOrganizations.length > 0) {
+      const orgStillExists = loadedOrganizations.some(
+        (org) => String(org.id) === String(selectedOrganization)
+      );
+
+      if (!orgStillExists) {
+        setSelectedOrganization(String(loadedOrganizations[0].id));
+      }
+    } else {
+      setSelectedOrganization("");
+    }
+
+    if (loadedEvents.length === 0) {
+      setSelectedEvent("");
+      setSelectedCourt("");
+      return;
+    }
+
+    const selectedStillExists = loadedEvents.some(
+      (event) => String(event.id) === String(selectedEvent)
     );
 
-    if (!orgStillExists) {
-      setSelectedOrganization(String(loadedOrganizations[0].id));
+    const nextSelectedEvent = selectedStillExists
+      ? String(selectedEvent)
+      : String(loadedEvents[0].id);
+
+    setSelectedEvent(nextSelectedEvent);
+
+    const selectedEventObj = loadedEvents.find(
+      (event) => String(event.id) === String(nextSelectedEvent)
+    );
+
+    if (selectedEventObj?.organization_id) {
+      setSelectedOrganization(String(selectedEventObj.organization_id));
     }
-  } else {
-    setSelectedOrganization("");
+
+    const matchingCourts = (courtsRes.data || []).filter(
+      (court) => String(court.event_id) === String(nextSelectedEvent)
+    );
+
+    if (matchingCourts.length === 0) {
+      setSelectedCourt("");
+      return;
+    }
+
+    const courtStillExists = matchingCourts.some(
+      (court) => String(court.id) === String(selectedCourt)
+    );
+
+    if (!courtStillExists) {
+      setSelectedCourt(String(matchingCourts[0].id));
+    }
   }
 
-  if (loadedEvents.length === 0) {
-    setSelectedEvent("");
-    setSelectedCourt("");
-    return;
+  async function loadPendingUsers() {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("role", "pending");
+
+    if (error) {
+      console.error("Fehler beim Laden offener Freigaben:", error);
+      return;
+    }
+
+    setPendingUsers(data || []);
   }
 
-  const selectedStillExists = loadedEvents.some(
-    (event) => String(event.id) === String(selectedEvent)
-  );
+  async function approveUser(userId) {
+    setSaving(true);
+    setMessage("");
 
-  const nextSelectedEvent = selectedStillExists
-    ? String(selectedEvent)
-    : String(loadedEvents[0].id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role: "admin" })
+      .eq("id", userId);
 
-  setSelectedEvent(nextSelectedEvent);
+    setSaving(false);
 
-  const selectedEventObj = loadedEvents.find(
-    (event) => String(event.id) === String(nextSelectedEvent)
-  );
+    if (error) {
+      setMessage(`Fehler bei der Freigabe: ${error.message}`);
+      return;
+    }
 
-  if (selectedEventObj?.organization_id) {
-    setSelectedOrganization(String(selectedEventObj.organization_id));
+    setMessage("User freigegeben.");
+    await loadPendingUsers();
   }
-
-  const matchingCourts = (courtsRes.data || []).filter(
-    (court) => String(court.event_id) === String(nextSelectedEvent)
-  );
-
-  if (matchingCourts.length === 0) {
-    setSelectedCourt("");
-    return;
-  }
-
-  const courtStillExists = matchingCourts.some(
-    (court) => String(court.id) === String(selectedCourt)
-  );
-
-  if (!courtStillExists) {
-    setSelectedCourt(String(matchingCourts[0].id));
-  }
-}
 
   async function loadPlayerData() {
     setMessage("");
@@ -415,73 +459,65 @@ const [authMode, setAuthMode] = useState("login");
   }
 
   async function handleLogin() {
-  setLoggingIn(true);
-  setMessage("");
+    setLoggingIn(true);
+    setMessage("");
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
-    password: password.trim(),
-  });
-
-  if (error) {
-    setMessage(error.message);
-  }
-
-  setLoggingIn(false);
-}
-
-async function handleSignup() {
-  setLoggingIn(true);
-  setMessage("");
-
-  if (!fullName.trim() || !email.trim() || !password.trim()) {
-    setMessage("Bitte Name, E-Mail und Passwort eingeben.");
-    setLoggingIn(false);
-    return;
-  }
-
-  const { data, error } = await supabase.auth.signUp({
-    email: email.trim(),
-    password: password.trim(),
-  });
-
-  if (error) {
-    setMessage(error.message);
-    setLoggingIn(false);
-    return;
-  }
-
-  const userId = data.user?.id;
-
-  if (userId) {
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: userId,
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
-      full_name: fullName.trim(),
-      role: "pending",
+      password: password.trim(),
     });
 
-    if (profileError) {
-      setMessage(`Profil-Fehler: ${profileError.message}`);
+    if (error) {
+      setMessage(error.message);
+    }
+
+    setLoggingIn(false);
+  }
+
+  async function handleSignup() {
+    setLoggingIn(true);
+    setMessage("");
+
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setMessage("Bitte Name, E-Mail und Passwort eingeben.");
       setLoggingIn(false);
       return;
     }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: password.trim(),
+    });
+
+    if (error) {
+      setMessage(error.message);
+      setLoggingIn(false);
+      return;
+    }
+
+    const userId = data.user?.id;
+
+    if (userId) {
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: userId,
+        email: email.trim(),
+        full_name: fullName.trim(),
+        role: "pending",
+      });
+
+      if (profileError) {
+        setMessage(`Profil-Fehler: ${profileError.message}`);
+        setLoggingIn(false);
+        return;
+      }
+    }
+
+    setMessage("Registrierung erfolgreich. Freigabe erforderlich.");
+    setAuthMode("login");
+    setFullName("");
+    setPassword("");
+    setLoggingIn(false);
   }
-
-  setMessage("Registrierung erfolgreich. Freigabe erforderlich.");
-  setAuthMode("login");
-  setFullName("");
-  setPassword("");
-  setLoggingIn(false);
-}
-
-async function handleLogout() {
-  await supabase.auth.signOut();
-  setProfile(null);
-  setPlayerAssignment(null);
-  setPlayerMatch(null);
-  setMessage("");
-}
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -492,73 +528,73 @@ async function handleLogout() {
   }
 
   async function createEvent() {
-  if (!newEventTitle.trim()) {
-    setMessage("Bitte einen Turniernamen eingeben.");
-    return;
-  }
+    if (!newEventTitle.trim()) {
+      setMessage("Bitte einen Turniernamen eingeben.");
+      return;
+    }
 
-  if (!selectedOrganization) {
-    setMessage("Bitte zuerst eine Organisation auswählen.");
-    return;
-  }
+    if (!selectedOrganization) {
+      setMessage("Bitte zuerst eine Organisation auswählen.");
+      return;
+    }
 
-  if (!session?.user?.id) {
-    setMessage("Kein Admin-User gefunden. Bitte neu einloggen.");
-    return;
-  }
+    if (!session?.user?.id) {
+      setMessage("Kein Admin-User gefunden. Bitte neu einloggen.");
+      return;
+    }
 
-  setSaving(true);
-  setMessage("");
+    setSaving(true);
+    setMessage("");
 
-  const payload = {
-    organization_id: selectedOrganization,
-    admin_id: session.user.id,
-    title: newEventTitle.trim(),
-    subtitle: newEventSubtitle.trim() || null,
-    location: newEventLocation.trim() || null,
-  };
+    const payload = {
+      organization_id: selectedOrganization,
+      admin_id: session.user.id,
+      title: newEventTitle.trim(),
+      subtitle: newEventSubtitle.trim() || null,
+      location: newEventLocation.trim() || null,
+    };
 
-  const { data, error } = await supabase
-    .from("events")
-    .insert(payload)
-    .select()
-    .single();
+    const { data, error } = await supabase
+      .from("events")
+      .insert(payload)
+      .select()
+      .single();
 
-  if (error) {
+    if (error) {
+      setSaving(false);
+      setMessage(`Fehler beim Erstellen des Events: ${error.message}`);
+      return;
+    }
+
+    try {
+      await ensureCourtCount(data.id, newCourtCount || 1);
+      await ensureBrandingRow(data.id);
+    } catch (setupError) {
+      setMessage(
+        `Event erstellt, aber Setup war nicht vollständig: ${
+          setupError.message || setupError
+        }`
+      );
+    }
+
     setSaving(false);
-    setMessage(`Fehler beim Erstellen des Events: ${error.message}`);
-    return;
-  }
+    setMessage("Event erstellt.");
 
-  try {
-    await ensureCourtCount(data.id, newCourtCount || 1);
-    await ensureBrandingRow(data.id);
-  } catch (setupError) {
-    setMessage(
-      `Event erstellt, aber Setup war nicht vollständig: ${
-        setupError.message || setupError
-      }`
-    );
-  }
+    setNewEventTitle("");
+    setNewEventSubtitle("");
+    setNewEventLocation("");
+    setNewCourtCount(4);
 
-  setSaving(false);
-  setMessage("Event erstellt.");
+    await loadAdminData();
 
-  setNewEventTitle("");
-  setNewEventSubtitle("");
-  setNewEventLocation("");
-  setNewCourtCount(4);
+    if (data?.id) {
+      setSelectedEvent(String(data.id));
 
-  await loadAdminData();
-
-  if (data?.id) {
-    setSelectedEvent(String(data.id));
-
-    if (data.organization_id) {
-      setSelectedOrganization(String(data.organization_id));
+      if (data.organization_id) {
+        setSelectedOrganization(String(data.organization_id));
+      }
     }
   }
-}
 
   async function ensureCourtCount(eventId, desiredCount) {
     const safeCount = Math.max(1, Number(desiredCount) || 1);
@@ -575,6 +611,7 @@ async function handleLogout() {
     if (currentCount >= safeCount) return;
 
     const inserts = [];
+
     for (let i = currentCount + 1; i <= safeCount; i += 1) {
       inserts.push({
         event_id: eventId,
@@ -584,7 +621,10 @@ async function handleLogout() {
     }
 
     if (inserts.length > 0) {
-      const { error: insertError } = await supabase.from("courts").insert(inserts);
+      const { error: insertError } = await supabase
+        .from("courts")
+        .insert(inserts);
+
       if (insertError) throw insertError;
     }
   }
@@ -614,8 +654,15 @@ async function handleLogout() {
   }
 
   async function createMatch() {
-    if (!selectedEvent || !selectedCourt) return setMessage("Bitte Event und Court auswählen.");
-    if (!playerA.trim() || !playerB.trim()) return setMessage("Bitte Spieler A und Spieler B eingeben.");
+    if (!selectedEvent || !selectedCourt) {
+      setMessage("Bitte Event und Court auswählen.");
+      return;
+    }
+
+    if (!playerA.trim() || !playerB.trim()) {
+      setMessage("Bitte Spieler A und Spieler B eingeben.");
+      return;
+    }
 
     setSaving(true);
     setMessage("");
@@ -637,17 +684,21 @@ async function handleLogout() {
 
     setSaving(false);
 
-    if (error) return setMessage(`Fehler Match: ${error.message}`);
+    if (error) {
+      setMessage(`Fehler Match: ${error.message}`);
+      return;
+    }
 
     setMessage("Match erstellt.");
     setPlayerA("");
     setPlayerB("");
-    await loadAdminData();s
+    await loadAdminData();
   }
 
   async function assignPlayer() {
     if (!selectedPlayer || !selectedEvent || !selectedCourt) {
-      return setMessage("Bitte Player, Event und Court auswählen.");
+      setMessage("Bitte Player, Event und Court auswählen.");
+      return;
     }
 
     setSaving(true);
@@ -661,7 +712,11 @@ async function handleLogout() {
 
     setSaving(false);
 
-    if (error) return setMessage(`Fehler Player-Zuweisung: ${error.message}`);
+    if (error) {
+      setMessage(`Fehler Player-Zuweisung: ${error.message}`);
+      return;
+    }
+
     setMessage("Player zugewiesen.");
   }
 
@@ -681,7 +736,10 @@ async function handleLogout() {
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("event-logos").getPublicUrl(filePath);
+    const { data } = supabase.storage
+      .from("event-logos")
+      .getPublicUrl(filePath);
+
     return data.publicUrl;
   }
 
@@ -739,9 +797,13 @@ async function handleLogout() {
           .from("branding_settings")
           .update(brandingPayload)
           .eq("event_id", selectedEvent);
+
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("branding_settings").insert(brandingPayload);
+        const { error } = await supabase
+          .from("branding_settings")
+          .insert(brandingPayload);
+
         if (error) throw error;
       }
 
@@ -761,7 +823,10 @@ async function handleLogout() {
   }
 
   async function removeEventLogo() {
-    if (!selectedEvent) return setMessage("Bitte zuerst ein Event auswählen.");
+    if (!selectedEvent) {
+      setMessage("Bitte zuerst ein Event auswählen.");
+      return;
+    }
 
     setSaving(true);
     setMessage("");
@@ -787,7 +852,10 @@ async function handleLogout() {
   }
 
   async function openMonitorForEvent() {
-    if (!selectedEvent) return setMessage("Bitte zuerst ein Event auswählen.");
+    if (!selectedEvent) {
+      setMessage("Bitte zuerst ein Event auswählen.");
+      return;
+    }
 
     const ok = await saveBrandingEditor();
     if (!ok) return;
@@ -839,7 +907,10 @@ async function handleLogout() {
 
     setSaving(false);
 
-    if (error) return setMessage(`Fehler Speichern: ${error.message}`);
+    if (error) {
+      setMessage(`Fehler Speichern: ${error.message}`);
+      return;
+    }
 
     setMessage("Ergebnis gespeichert.");
     await loadPlayerData();
@@ -895,83 +966,83 @@ async function handleLogout() {
   }
 
   if (!session) {
-  return (
-    <PageShell>
-      <div style={{ ...styles.authCard, maxWidth: 520 }}>
-        <div style={styles.authKicker}>LIVE TENNIS CONTROL</div>
+    return (
+      <PageShell>
+        <div style={{ ...styles.authCard, maxWidth: 520 }}>
+          <div style={styles.authKicker}>LIVE TENNIS CONTROL</div>
 
-        <h1 style={styles.authTitle}>
-          {authMode === "login" ? "Willkommen zurück" : "Zugang anfragen"}
-        </h1>
+          <h1 style={styles.authTitle}>
+            {authMode === "login" ? "Willkommen zurück" : "Zugang anfragen"}
+          </h1>
 
-        <p style={{ ...styles.muted, marginBottom: 22, lineHeight: 1.5 }}>
-          {authMode === "login"
-            ? "Melde dich an, um deine Turniere zu verwalten."
-            : "Registriere dich. Dein Zugang wird anschließend von der Turnierleitung freigegeben."}
-        </p>
+          <p style={{ ...styles.muted, marginBottom: 22, lineHeight: 1.5 }}>
+            {authMode === "login"
+              ? "Melde dich an, um deine Turniere zu verwalten."
+              : "Registriere dich. Dein Zugang wird anschließend von der Turnierleitung freigegeben."}
+          </p>
 
-        {message && <InfoBox>{message}</InfoBox>}
+          {message && <InfoBox>{message}</InfoBox>}
 
-        {authMode === "signup" && (
+          {authMode === "signup" && (
+            <input
+              placeholder="Vollständiger Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              style={styles.input}
+            />
+          )}
+
           <input
-            placeholder="Vollständiger Name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            placeholder="E-Mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             style={styles.input}
           />
-        )}
 
-        <input
-          placeholder="E-Mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-        />
+          <input
+            type="password"
+            placeholder="Passwort"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
+          />
 
-        <input
-          type="password"
-          placeholder="Passwort"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-        />
+          {authMode === "login" ? (
+            <button
+              type="button"
+              onClick={handleLogin}
+              style={styles.primaryButtonFull}
+              disabled={loggingIn}
+            >
+              {loggingIn ? "Einloggen..." : "Einloggen"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSignup}
+              style={styles.primaryButtonFull}
+              disabled={loggingIn}
+            >
+              {loggingIn ? "Registrieren..." : "Zugang anfragen"}
+            </button>
+          )}
 
-        {authMode === "login" ? (
           <button
             type="button"
-            onClick={handleLogin}
-            style={styles.primaryButtonFull}
-            disabled={loggingIn}
+            onClick={() => {
+              setMessage("");
+              setAuthMode(authMode === "login" ? "signup" : "login");
+            }}
+            style={styles.ghostButtonFull}
           >
-            {loggingIn ? "Einloggen..." : "Einloggen"}
+            {authMode === "login"
+              ? "Noch keinen Zugang? Registrierung anfragen"
+              : "Schon freigegeben? Zum Login"}
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSignup}
-            style={styles.primaryButtonFull}
-            disabled={loggingIn}
-          >
-            {loggingIn ? "Registrieren..." : "Zugang anfragen"}
-          </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => {
-            setMessage("");
-            setAuthMode(authMode === "login" ? "signup" : "login");
-          }}
-          style={styles.ghostButtonFull}
-        >
-          {authMode === "login"
-            ? "Noch keinen Zugang? Registrierung anfragen"
-            : "Schon freigegeben? Zum Login"}
-        </button>
-      </div>
-    </PageShell>
-  );
-}
+        </div>
+      </PageShell>
+    );
+  }
 
   if (!profile) {
     return (
@@ -983,44 +1054,48 @@ async function handleLogout() {
             <div><strong>User-ID:</strong> {session.user.id}</div>
             <div><strong>E-Mail:</strong> {session.user.email}</div>
           </div>
-          <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>Logout</button>
+          <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>
+            Logout
+          </button>
         </div>
       </PageShell>
     );
   }
-if (profile.role === "pending") {
-  return (
-    <PageShell>
-      <div style={{ ...styles.authCard, maxWidth: 580 }}>
-        <div style={styles.authKicker}>ZUGANG ANGEFRAGT</div>
 
-        <h1 style={styles.authTitle}>Freigabe ausstehend</h1>
+  if (profile.role === "pending") {
+    return (
+      <PageShell>
+        <div style={{ ...styles.authCard, maxWidth: 580 }}>
+          <div style={styles.authKicker}>ZUGANG ANGEFRAGT</div>
+          <h1 style={styles.authTitle}>Freigabe ausstehend</h1>
 
-        <p style={{ ...styles.muted, lineHeight: 1.6 }}>
-          Dein Konto wurde erfolgreich erstellt.
-          <br />
-          Die Turnierleitung prüft aktuell deinen Zugang.
-          <br /><br />
-          Sobald du freigeschaltet bist, kannst du deine eigenen Turniere verwalten.
-        </p>
+          <p style={{ ...styles.muted, lineHeight: 1.6 }}>
+            Dein Konto wurde erfolgreich erstellt.
+            <br />
+            Die Turnierleitung prüft aktuell deinen Zugang.
+            <br />
+            <br />
+            Sobald du freigeschaltet bist, kannst du deine eigenen Turniere verwalten.
+          </p>
 
-        <div style={{ marginTop: 22, lineHeight: 1.8 }}>
-          <div><strong>Name:</strong> {profile.full_name || "-"}</div>
-          <div><strong>E-Mail:</strong> {session.user.email}</div>
-          <div><strong>Status:</strong> wartet auf Freigabe</div>
+          <div style={{ marginTop: 22, lineHeight: 1.8 }}>
+            <div><strong>Name:</strong> {profile.full_name || "-"}</div>
+            <div><strong>E-Mail:</strong> {session.user.email}</div>
+            <div><strong>Status:</strong> wartet auf Freigabe</div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={styles.primaryButtonFull}
+          >
+            Logout
+          </button>
         </div>
+      </PageShell>
+    );
+  }
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          style={styles.primaryButtonFull}
-        >
-          Logout
-        </button>
-      </div>
-    </PageShell>
-  );
-}
   if (profile.role === "admin") {
     return (
       <div style={styles.page}>
@@ -1034,7 +1109,9 @@ if (profile.role === "pending") {
             <div>
               <div style={styles.kicker}>LIVE TENNIS CONTROL</div>
               <h1 style={styles.heroTitle}>Online Turniersteuerung 2.3</h1>
-              <div style={styles.heroSub}>Admin Panel · Event, Branding, Matches und Player-Zugänge</div>
+              <div style={styles.heroSub}>
+                Admin Panel · Event, Branding, Matches und Player-Zugänge
+              </div>
             </div>
           </div>
 
@@ -1046,11 +1123,40 @@ if (profile.role === "pending") {
         </header>
 
         <nav style={styles.tabs}>
-          <button type="button" style={adminTab === "admin" ? styles.tabActive : styles.tab} onClick={() => setAdminTab("admin")}>Admin</button>
-          <button type="button" style={styles.tab} onClick={openMonitorForEvent}>Monitor</button>
-          <button type="button" style={adminTab === "qr" ? styles.tabActive : styles.tab} onClick={() => setAdminTab("qr")}>QR-Codes</button>
-          <button type="button" style={styles.tab} onClick={() => { setAdminTab("qr"); setTimeout(() => window.print(), 300); }}>Druck</button>
-          <button type="button" style={styles.tab} onClick={handleLogout}>Logout</button>
+          <button
+            type="button"
+            style={adminTab === "admin" ? styles.tabActive : styles.tab}
+            onClick={() => setAdminTab("admin")}
+          >
+            Admin
+          </button>
+
+          <button type="button" style={styles.tab} onClick={openMonitorForEvent}>
+            Monitor
+          </button>
+
+          <button
+            type="button"
+            style={adminTab === "qr" ? styles.tabActive : styles.tab}
+            onClick={() => setAdminTab("qr")}
+          >
+            QR-Codes
+          </button>
+
+          <button
+            type="button"
+            style={styles.tab}
+            onClick={() => {
+              setAdminTab("qr");
+              setTimeout(() => window.print(), 300);
+            }}
+          >
+            Druck
+          </button>
+
+          <button type="button" style={styles.tab} onClick={handleLogout}>
+            Logout
+          </button>
         </nav>
 
         {message && <InfoBox>{message}</InfoBox>}
@@ -1060,21 +1166,28 @@ if (profile.role === "pending") {
             <div style={styles.quickLabel}>Aktives Event</div>
             <div style={styles.quickValue}>{eventName(selectedEventObj)}</div>
           </div>
+
           <div>
             <div style={styles.quickLabel}>Courts</div>
             <div style={styles.quickValue}>{filteredCourts.length}</div>
           </div>
+
           <div>
             <div style={styles.quickLabel}>Matches</div>
             <div style={styles.quickValue}>{filteredMatchesByEvent.length}</div>
           </div>
+
           <button type="button" style={styles.monitorButton} onClick={openMonitorForEvent}>
             Monitor für aktives Event öffnen
           </button>
         </section>
 
         {adminTab === "qr" && (
-          <QRPrintPanel eventId={selectedEvent} eventTitle={eventName(selectedEventObj)} courts={filteredCourts} />
+          <QRPrintPanel
+            eventId={selectedEvent}
+            eventTitle={eventName(selectedEventObj)}
+            courts={filteredCourts}
+          />
         )}
 
         {adminTab === "admin" && (
@@ -1082,46 +1195,94 @@ if (profile.role === "pending") {
             <aside style={styles.leftColumn}>
               <Panel title="Event erstellen" subtitle="Neues Turnier mit Courts anlegen">
                 <FormLabel>Organisation</FormLabel>
-                <select value={String(selectedOrganization || "")} onChange={(e) => setSelectedOrganization(String(e.target.value))} style={styles.input}>
+                <select
+                  value={String(selectedOrganization || "")}
+                  onChange={(e) => setSelectedOrganization(String(e.target.value))}
+                  style={styles.input}
+                >
                   <option value="">Organisation wählen</option>
                   {organizations.map((org) => (
-                    <option key={org.id} value={String(org.id)}>{organizationName(org)}</option>
+                    <option key={org.id} value={String(org.id)}>
+                      {organizationName(org)}
+                    </option>
                   ))}
                 </select>
 
                 <FormLabel>Neuer Turniername</FormLabel>
-                <input value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)} placeholder="z. B. Waske Open" style={styles.input} />
+                <input
+                  value={newEventTitle}
+                  onChange={(e) => setNewEventTitle(e.target.value)}
+                  placeholder="z. B. Waske Open"
+                  style={styles.input}
+                />
 
                 <FormLabel>Untertitel</FormLabel>
-                <input value={newEventSubtitle} onChange={(e) => setNewEventSubtitle(e.target.value)} placeholder="optional" style={styles.input} />
+                <input
+                  value={newEventSubtitle}
+                  onChange={(e) => setNewEventSubtitle(e.target.value)}
+                  placeholder="optional"
+                  style={styles.input}
+                />
 
                 <FormLabel>Ort</FormLabel>
-                <input value={newEventLocation} onChange={(e) => setNewEventLocation(e.target.value)} placeholder="z. B. Frankfurt" style={styles.input} />
+                <input
+                  value={newEventLocation}
+                  onChange={(e) => setNewEventLocation(e.target.value)}
+                  placeholder="z. B. Frankfurt"
+                  style={styles.input}
+                />
 
                 <FormLabel>Anzahl Courts</FormLabel>
-                <input type="number" min="1" value={newCourtCount} onChange={(e) => setNewCourtCount(Number(e.target.value) || 1)} style={styles.input} />
+                <input
+                  type="number"
+                  min="1"
+                  value={newCourtCount}
+                  onChange={(e) => setNewCourtCount(Number(e.target.value) || 1)}
+                  style={styles.input}
+                />
 
-                <button type="button" onClick={createEvent} style={styles.primaryButtonFull} disabled={saving}>
+                <button
+                  type="button"
+                  onClick={createEvent}
+                  style={styles.primaryButtonFull}
+                  disabled={saving}
+                >
                   {saving ? "Speichern..." : "Event erstellen"}
                 </button>
               </Panel>
 
               <Panel title="Match erstellen" subtitle="Match einem Court zuweisen">
                 <FormLabel>Event</FormLabel>
-                <EventSelect events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} setEditorDirty={setEditorDirty} eventName={eventName} />
+                <EventSelect
+                  events={events}
+                  selectedEvent={selectedEvent}
+                  setSelectedEvent={setSelectedEvent}
+                  setEditorDirty={setEditorDirty}
+                  eventName={eventName}
+                />
 
                 <FormLabel>Court</FormLabel>
-                <CourtSelect courts={filteredCourts} selectedCourt={selectedCourt} setSelectedCourt={setSelectedCourt} courtName={courtName} />
+                <CourtSelect
+                  courts={filteredCourts}
+                  selectedCourt={selectedCourt}
+                  setSelectedCourt={setSelectedCourt}
+                  courtName={courtName}
+                />
 
                 <div style={styles.twoCols}>
                   <div>
                     <FormLabel>Modus</FormLabel>
-                    <select value={matchMode} onChange={(e) => setMatchMode(e.target.value)} style={styles.input}>
+                    <select
+                      value={matchMode}
+                      onChange={(e) => setMatchMode(e.target.value)}
+                      style={styles.input}
+                    >
                       <option value="Einzel">Einzel</option>
                       <option value="Doppel">Doppel</option>
                       <option value="Mannschaft">Mannschaft</option>
                     </select>
                   </div>
+
                   <div>
                     <FormLabel>Status</FormLabel>
                     <input value="planned" readOnly style={styles.inputMuted} />
@@ -1129,51 +1290,169 @@ if (profile.role === "pending") {
                 </div>
 
                 <FormLabel>Spieler / Team A</FormLabel>
-                <input value={playerA} onChange={(e) => setPlayerA(e.target.value)} placeholder="Spieler A" style={styles.input} />
+                <input
+                  value={playerA}
+                  onChange={(e) => setPlayerA(e.target.value)}
+                  placeholder="Spieler A"
+                  style={styles.input}
+                />
 
                 <FormLabel>Spieler / Team B</FormLabel>
-                <input value={playerB} onChange={(e) => setPlayerB(e.target.value)} placeholder="Spieler B" style={styles.input} />
+                <input
+                  value={playerB}
+                  onChange={(e) => setPlayerB(e.target.value)}
+                  placeholder="Spieler B"
+                  style={styles.input}
+                />
 
-                <button type="button" onClick={createMatch} style={styles.primaryButtonFull} disabled={saving}>
+                <button
+                  type="button"
+                  onClick={createMatch}
+                  style={styles.primaryButtonFull}
+                  disabled={saving}
+                >
                   {saving ? "Speichern..." : "Match erstellen"}
                 </button>
               </Panel>
             </aside>
 
             <section style={styles.rightColumn}>
+              <Panel title="Freigaben" subtitle="Neue Registrierungen freischalten">
+                {pendingUsers.length === 0 ? (
+                  <div style={styles.emptyText}>Keine offenen Anfragen</div>
+                ) : (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {pendingUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        style={{
+                          padding: 14,
+                          borderRadius: 14,
+                          background: "rgba(18,30,61,0.92)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 900 }}>
+                            {user.full_name || "-"}
+                          </div>
+                          <div style={styles.muted}>{user.email || "-"}</div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => approveUser(user.id)}
+                          style={styles.primaryButton}
+                          disabled={saving}
+                        >
+                          Freigeben
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+
               <Panel title="Admin Branding Editor" subtitle="Look & Feel des Monitors steuern">
                 <div style={styles.editorGrid}>
                   <div>
                     <FormLabel>Event</FormLabel>
-                    <EventSelect events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} setEditorDirty={setEditorDirty} eventName={eventName} />
+                    <EventSelect
+                      events={events}
+                      selectedEvent={selectedEvent}
+                      setSelectedEvent={setSelectedEvent}
+                      setEditorDirty={setEditorDirty}
+                      eventName={eventName}
+                    />
 
                     <FormLabel>Organisation</FormLabel>
-                    <select value={String(selectedOrganization || "")} onChange={(e) => { setEditorDirty(true); setSelectedOrganization(String(e.target.value)); }} style={styles.input}>
+                    <select
+                      value={String(selectedOrganization || "")}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setSelectedOrganization(String(e.target.value));
+                      }}
+                      style={styles.input}
+                    >
                       <option value="">Organisation wählen</option>
                       {organizations.map((org) => (
-                        <option key={org.id} value={String(org.id)}>{organizationName(org)}</option>
+                        <option key={org.id} value={String(org.id)}>
+                          {organizationName(org)}
+                        </option>
                       ))}
                     </select>
 
                     <FormLabel>Turniername</FormLabel>
-                    <input value={eventTitleInput} onChange={(e) => { setEditorDirty(true); setEventTitleInput(e.target.value); }} placeholder="z. B. Sommer Open 2026" style={styles.input} />
+                    <input
+                      value={eventTitleInput}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setEventTitleInput(e.target.value);
+                      }}
+                      placeholder="z. B. Sommer Open 2026"
+                      style={styles.input}
+                    />
 
                     <FormLabel>Untertitel</FormLabel>
-                    <input value={eventSubtitleInput} onChange={(e) => { setEditorDirty(true); setEventSubtitleInput(e.target.value); }} placeholder="optional" style={styles.input} />
+                    <input
+                      value={eventSubtitleInput}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setEventSubtitleInput(e.target.value);
+                      }}
+                      placeholder="optional"
+                      style={styles.input}
+                    />
 
                     <FormLabel>Ort</FormLabel>
-                    <input value={eventLocationInput} onChange={(e) => { setEditorDirty(true); setEventLocationInput(e.target.value); }} placeholder="z. B. Frankfurt" style={styles.input} />
+                    <input
+                      value={eventLocationInput}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setEventLocationInput(e.target.value);
+                      }}
+                      placeholder="z. B. Frankfurt"
+                      style={styles.input}
+                    />
 
                     <FormLabel>Anzahl Courts</FormLabel>
-                    <input type="number" min="1" value={courtCountInput} onChange={(e) => { setEditorDirty(true); setCourtCountInput(Number(e.target.value) || 1); }} style={styles.input} />
+                    <input
+                      type="number"
+                      min="1"
+                      value={courtCountInput}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setCourtCountInput(Number(e.target.value) || 1);
+                      }}
+                      style={styles.input}
+                    />
                   </div>
-
-                  <div>
+                                    <div>
                     <FormLabel>Monitor-Titel</FormLabel>
-                    <input value={monitorTitle} onChange={(e) => { setEditorDirty(true); setMonitorTitle(e.target.value); }} placeholder="LIVE SCOREBOARD" style={styles.input} />
+                    <input
+                      value={monitorTitle}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setMonitorTitle(e.target.value);
+                      }}
+                      placeholder="LIVE SCOREBOARD"
+                      style={styles.input}
+                    />
 
                     <FormLabel>Monitor-Untertitel</FormLabel>
-                    <input value={monitorSubtitle} onChange={(e) => { setEditorDirty(true); setMonitorSubtitle(e.target.value); }} placeholder="optional" style={styles.input} />
+                    <input
+                      value={monitorSubtitle}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setMonitorSubtitle(e.target.value);
+                      }}
+                      placeholder="optional"
+                      style={styles.input}
+                    />
 
                     <div style={styles.colorGrid}>
                       <ColorField label="Primär" value={primaryColor} onChange={(v) => { setEditorDirty(true); setPrimaryColor(v); }} />
@@ -1184,19 +1463,46 @@ if (profile.role === "pending") {
                     </div>
 
                     <FormLabel>Hintergrund-Stil</FormLabel>
-                    <select value={backgroundStyle} onChange={(e) => { setEditorDirty(true); setBackgroundStyle(e.target.value); }} style={styles.input}>
+                    <select
+                      value={backgroundStyle}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setBackgroundStyle(e.target.value);
+                      }}
+                      style={styles.input}
+                    >
                       <option value="dark">dark</option>
                       <option value="light">light</option>
                       <option value="gradient">gradient</option>
                     </select>
 
                     <FormLabel>Sponsor-Text</FormLabel>
-                    <input value={sponsorText} onChange={(e) => { setEditorDirty(true); setSponsorText(e.target.value); }} placeholder="z. B. GP23 Immobilien präsentiert" style={styles.input} />
+                    <input
+                      value={sponsorText}
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setSponsorText(e.target.value);
+                      }}
+                      placeholder="z. B. GP23 Immobilien präsentiert"
+                      style={styles.input}
+                    />
 
                     <FormLabel>Logo hochladen</FormLabel>
-                    <input type="file" accept="image/*" onChange={(e) => { setEditorDirty(true); setLogoFile(e.target.files?.[0] || null); }} style={styles.fileInput} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        setEditorDirty(true);
+                        setLogoFile(e.target.files?.[0] || null);
+                      }}
+                      style={styles.fileInput}
+                    />
 
-                    {logoFile ? <div style={styles.fileNote}>Neue Datei: <strong>{logoFile.name}</strong></div> : null}
+                    {logoFile ? (
+                      <div style={styles.fileNote}>
+                        Neue Datei: <strong>{logoFile.name}</strong>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1215,14 +1521,23 @@ if (profile.role === "pending") {
                   >
                     <div style={styles.previewHeader}>
                       {previewLogoSrc ? (
-                        <img src={previewLogoSrc} alt="Logo Vorschau" style={styles.previewLogo} onError={(e) => (e.currentTarget.style.display = "none")} />
+                        <img
+                          src={previewLogoSrc}
+                          alt="Logo Vorschau"
+                          style={styles.previewLogo}
+                          onError={(e) => (e.currentTarget.style.display = "none")}
+                        />
                       ) : (
                         <div style={styles.previewLogoFallback}>TS</div>
                       )}
 
                       <div>
-                        <div style={{ ...styles.previewKicker, color: primaryColor }}>LIVE TENNIS CONTROL</div>
-                        <div style={{ ...styles.previewTitle, color: textColor }}>{eventTitleInput || "Turniername"}</div>
+                        <div style={{ ...styles.previewKicker, color: primaryColor }}>
+                          LIVE TENNIS CONTROL
+                        </div>
+                        <div style={{ ...styles.previewTitle, color: textColor }}>
+                          {eventTitleInput || "Turniername"}
+                        </div>
                         <div style={{ ...styles.previewSub, color: hexToRgba(textColor, 0.78) }}>
                           {monitorSubtitle || eventSubtitleInput || "Monitor Vorschau"}
                         </div>
@@ -1230,60 +1545,127 @@ if (profile.role === "pending") {
                     </div>
 
                     <div style={styles.previewMiniNav}>
-                      <span style={{ ...styles.previewPill, borderColor, color: textColor, background: hexToRgba(borderColor, 0.18) }}>Alle Matches</span>
-                      <span style={{ ...styles.previewPill, borderColor: accentColor, color: accentColor, background: hexToRgba(accentColor, 0.18) }}>LIVE</span>
+                      <span
+                        style={{
+                          ...styles.previewPill,
+                          borderColor,
+                          color: textColor,
+                          background: hexToRgba(borderColor, 0.18),
+                        }}
+                      >
+                        Alle Matches
+                      </span>
+
+                      <span
+                        style={{
+                          ...styles.previewPill,
+                          borderColor: accentColor,
+                          color: accentColor,
+                          background: hexToRgba(accentColor, 0.18),
+                        }}
+                      >
+                        LIVE
+                      </span>
                     </div>
                   </div>
 
                   {selectedBrandingObj?.logo_url ? (
                     <div style={styles.logoPreviewBox}>
                       <div style={styles.miniLabel}>Aktuelles Logo</div>
-                      <img src={selectedBrandingObj.logo_url} alt="Logo Vorschau" style={styles.logoPreview} />
+                      <img
+                        src={selectedBrandingObj.logo_url}
+                        alt="Logo Vorschau"
+                        style={styles.logoPreview}
+                      />
                     </div>
                   ) : null}
                 </div>
 
                 <div style={styles.actionRow}>
-                  <button type="button" onClick={saveBrandingEditor} style={styles.primaryButton} disabled={saving}>
+                  <button
+                    type="button"
+                    onClick={saveBrandingEditor}
+                    style={styles.primaryButton}
+                    disabled={saving}
+                  >
                     {saving ? "Speichern..." : "Branding & Event speichern"}
                   </button>
-                  <button type="button" onClick={removeEventLogo} style={styles.ghostButton} disabled={saving}>Logo entfernen</button>
+
+                  <button
+                    type="button"
+                    onClick={removeEventLogo}
+                    style={styles.ghostButton}
+                    disabled={saving}
+                  >
+                    Logo entfernen
+                  </button>
                 </div>
               </Panel>
 
               <div style={styles.bottomGrid}>
                 <Panel title="Player zuweisen" subtitle="Player-Zugang an Court koppeln">
                   <FormLabel>Player</FormLabel>
-                  <select value={selectedPlayer} onChange={(e) => setSelectedPlayer(e.target.value)} style={styles.input}>
+                  <select
+                    value={selectedPlayer}
+                    onChange={(e) => setSelectedPlayer(e.target.value)}
+                    style={styles.input}
+                  >
                     <option value="">Player wählen</option>
                     {players.map((p) => (
-                      <option key={p.id} value={p.id}>{p.full_name || p.id}</option>
+                      <option key={p.id} value={p.id}>
+                        {p.full_name || p.email || p.id}
+                      </option>
                     ))}
                   </select>
 
                   <FormLabel>Event</FormLabel>
-                  <EventSelect events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} setEditorDirty={setEditorDirty} eventName={eventName} />
+                  <EventSelect
+                    events={events}
+                    selectedEvent={selectedEvent}
+                    setSelectedEvent={setSelectedEvent}
+                    setEditorDirty={setEditorDirty}
+                    eventName={eventName}
+                  />
 
                   <FormLabel>Court</FormLabel>
-                  <CourtSelect courts={filteredCourts} selectedCourt={selectedCourt} setSelectedCourt={setSelectedCourt} courtName={courtName} />
+                  <CourtSelect
+                    courts={filteredCourts}
+                    selectedCourt={selectedCourt}
+                    setSelectedCourt={setSelectedCourt}
+                    courtName={courtName}
+                  />
 
                   <div style={styles.selectionNote}>
-                    <div><strong>Event:</strong> {eventName(selectedEventObj)}</div>
-                    <div><strong>Court:</strong> {courtName(selectedCourtObj)}</div>
+                    <div>
+                      <strong>Event:</strong> {eventName(selectedEventObj)}
+                    </div>
+                    <div>
+                      <strong>Court:</strong> {courtName(selectedCourtObj)}
+                    </div>
                   </div>
 
-                  <button type="button" onClick={assignPlayer} style={styles.primaryButtonFull} disabled={saving}>
+                  <button
+                    type="button"
+                    onClick={assignPlayer}
+                    style={styles.primaryButtonFull}
+                    disabled={saving}
+                  >
                     {saving ? "Speichern..." : "Player zuweisen"}
                   </button>
                 </Panel>
 
                 <Panel title="Vorhandene Matches" subtitle="Aktueller Stand des Events">
                   {filteredMatchesByEvent.length === 0 ? (
-                    <div style={styles.emptyText}>Keine Matches für dieses Event vorhanden.</div>
+                    <div style={styles.emptyText}>
+                      Keine Matches für dieses Event vorhanden.
+                    </div>
                   ) : (
                     <div style={styles.matchList}>
                       {filteredMatchesByEvent.map((m) => {
-                        const courtObj = courts.find((c) => String(c.id) === String(m.court_id));
+                        const courtObj = courts.find(
+                          (c) => String(c.id) === String(m.court_id)
+                        );
+
                         return (
                           <div key={m.id} style={styles.matchItem}>
                             <div style={styles.matchItemTop}>
@@ -1291,8 +1673,14 @@ if (profile.role === "pending") {
                               <span style={styles.vs}>vs</span>
                               <strong>{m.player_b || "-"}</strong>
                             </div>
-                            <div style={styles.matchMeta}>{courtName(courtObj)} · {m.status} · {m.mode}</div>
-                            <div style={styles.matchScore}>S1 {m.set1_a ?? 0}:{m.set1_b ?? 0} · S2 {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB {m.set3_a ?? 0}:{m.set3_b ?? 0}</div>
+                            <div style={styles.matchMeta}>
+                              {courtName(courtObj)} · {m.status} · {m.mode}
+                            </div>
+                            <div style={styles.matchScore}>
+                              S1 {m.set1_a ?? 0}:{m.set1_b ?? 0} · S2{" "}
+                              {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB{" "}
+                              {m.set3_a ?? 0}:{m.set3_b ?? 0}
+                            </div>
                           </div>
                         );
                       })}
@@ -1312,10 +1700,15 @@ if (profile.role === "pending") {
       <div style={styles.pageCentered}>
         <div style={styles.authCardWide}>
           <h1 style={styles.authTitle}>Player UI</h1>
+
           <div style={{ marginBottom: 20 }}>
-            <div><strong>{profile.full_name}</strong></div>
+            <div>
+              <strong>{profile.full_name}</strong>
+            </div>
             <div style={styles.muted}>Rolle: {profile.role}</div>
-            <div style={styles.muted}>Court: {playerAssignment?.court_id || "-"}</div>
+            <div style={styles.muted}>
+              Court: {playerAssignment?.court_id || "-"}
+            </div>
           </div>
 
           {message && <InfoBox>{message}</InfoBox>}
@@ -1323,31 +1716,112 @@ if (profile.role === "pending") {
           {!playerMatch ? (
             <>
               <p>Kein Match geladen.</p>
-              <button type="button" onClick={loadPlayerData} style={styles.primaryButtonFull}>Neu laden</button>
-              <button type="button" onClick={handleLogout} style={styles.ghostButtonFull}>Logout</button>
+              <button
+                type="button"
+                onClick={loadPlayerData}
+                style={styles.primaryButtonFull}
+              >
+                Neu laden
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={styles.ghostButtonFull}
+              >
+                Logout
+              </button>
             </>
           ) : (
             <>
               <div style={styles.playerMatchBox}>
-                <div style={styles.playerMatchTitle}>{playerMatch.player_a || "Spieler A"} gegen {playerMatch.player_b || "Spieler B"}</div>
+                <div style={styles.playerMatchTitle}>
+                  {playerMatch.player_a || "Spieler A"} gegen{" "}
+                  {playerMatch.player_b || "Spieler B"}
+                </div>
                 <div style={styles.muted}>Modus: {playerMatch.mode || "-"}</div>
-                <div style={styles.muted}>Status: <strong>{playerMatch.status || "-"}</strong></div>
+                <div style={styles.muted}>
+                  Status: <strong>{playerMatch.status || "-"}</strong>
+                </div>
               </div>
 
               <div style={styles.statusButtonRow}>
-                <button type="button" onClick={() => changeStatus("planned")} style={smallButton(playerMatch.status === "planned")}>Planned</button>
-                <button type="button" onClick={() => changeStatus("live")} style={smallButton(playerMatch.status === "live")}>Live</button>
-                <button type="button" onClick={() => changeStatus("finished")} style={smallButton(playerMatch.status === "finished")}>Finished</button>
+                <button
+                  type="button"
+                  onClick={() => changeStatus("planned")}
+                  style={smallButton(playerMatch.status === "planned")}
+                >
+                  Planned
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeStatus("live")}
+                  style={smallButton(playerMatch.status === "live")}
+                >
+                  Live
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeStatus("finished")}
+                  style={smallButton(playerMatch.status === "finished")}
+                >
+                  Finished
+                </button>
               </div>
 
               <div style={styles.scoreGridPlayer}>
-                <ScoreCard title="Satz 1" leftLabel={playerMatch.player_a || "A"} rightLabel={playerMatch.player_b || "B"} leftValue={playerMatch.set1_a || 0} rightValue={playerMatch.set1_b || 0} onLeftPlus={() => addPoint("set1_a")} onLeftMinus={() => removePoint("set1_a")} onRightPlus={() => addPoint("set1_b")} onRightMinus={() => removePoint("set1_b")} />
-                <ScoreCard title="Satz 2" leftLabel={playerMatch.player_a || "A"} rightLabel={playerMatch.player_b || "B"} leftValue={playerMatch.set2_a || 0} rightValue={playerMatch.set2_b || 0} onLeftPlus={() => addPoint("set2_a")} onLeftMinus={() => removePoint("set2_a")} onRightPlus={() => addPoint("set2_b")} onRightMinus={() => removePoint("set2_b")} />
-                <ScoreCard title="MTB" leftLabel={playerMatch.player_a || "A"} rightLabel={playerMatch.player_b || "B"} leftValue={playerMatch.set3_a || 0} rightValue={playerMatch.set3_b || 0} onLeftPlus={() => addPoint("set3_a")} onLeftMinus={() => removePoint("set3_a")} onRightPlus={() => addPoint("set3_b")} onRightMinus={() => removePoint("set3_b")} />
+                <ScoreCard
+                  title="Satz 1"
+                  leftLabel={playerMatch.player_a || "A"}
+                  rightLabel={playerMatch.player_b || "B"}
+                  leftValue={playerMatch.set1_a || 0}
+                  rightValue={playerMatch.set1_b || 0}
+                  onLeftPlus={() => addPoint("set1_a")}
+                  onLeftMinus={() => removePoint("set1_a")}
+                  onRightPlus={() => addPoint("set1_b")}
+                  onRightMinus={() => removePoint("set1_b")}
+                />
+
+                <ScoreCard
+                  title="Satz 2"
+                  leftLabel={playerMatch.player_a || "A"}
+                  rightLabel={playerMatch.player_b || "B"}
+                  leftValue={playerMatch.set2_a || 0}
+                  rightValue={playerMatch.set2_b || 0}
+                  onLeftPlus={() => addPoint("set2_a")}
+                  onLeftMinus={() => removePoint("set2_a")}
+                  onRightPlus={() => addPoint("set2_b")}
+                  onRightMinus={() => removePoint("set2_b")}
+                />
+
+                <ScoreCard
+                  title="MTB"
+                  leftLabel={playerMatch.player_a || "A"}
+                  rightLabel={playerMatch.player_b || "B"}
+                  leftValue={playerMatch.set3_a || 0}
+                  rightValue={playerMatch.set3_b || 0}
+                  onLeftPlus={() => addPoint("set3_a")}
+                  onLeftMinus={() => removePoint("set3_a")}
+                  onRightPlus={() => addPoint("set3_b")}
+                  onRightMinus={() => removePoint("set3_b")}
+                />
               </div>
 
-              <button type="button" onClick={savePlayerMatch} style={styles.primaryButtonFull} disabled={saving}>{saving ? "Speichern..." : "Ergebnis speichern"}</button>
-              <button type="button" onClick={handleLogout} style={styles.ghostButtonFull}>Logout</button>
+              <button
+                type="button"
+                onClick={savePlayerMatch}
+                style={styles.primaryButtonFull}
+                disabled={saving}
+              >
+                {saving ? "Speichern..." : "Ergebnis speichern"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={styles.ghostButtonFull}
+              >
+                Logout
+              </button>
             </>
           )}
         </div>
@@ -1361,7 +1835,9 @@ if (profile.role === "pending") {
         <h1 style={styles.authTitle}>Rolle erkannt</h1>
         <p>{profile.full_name}</p>
         <p>Rolle: {profile.role}</p>
-        <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>Logout</button>
+        <button type="button" onClick={handleLogout} style={styles.primaryButtonFull}>
+          Logout
+        </button>
       </div>
     </PageShell>
   );
@@ -1420,9 +1896,16 @@ function PlayerQRPage() {
     const set1Finished = Boolean(s1Winner);
     const set2Finished = Boolean(s2Winner);
 
-    const needsMatchTiebreak = set1Finished && set2Finished && setsA === 1 && setsB === 1;
-    const matchWonAfterTwoSets = set1Finished && set2Finished && (setsA === 2 || setsB === 2);
-    const matchTiebreakFinished = isMatchTiebreakFinished(currentMatch.set3_a, currentMatch.set3_b);
+    const needsMatchTiebreak =
+      set1Finished && set2Finished && setsA === 1 && setsB === 1;
+
+    const matchWonAfterTwoSets =
+      set1Finished && set2Finished && (setsA === 2 || setsB === 2);
+
+    const matchTiebreakFinished = isMatchTiebreakFinished(
+      currentMatch.set3_a,
+      currentMatch.set3_b
+    );
 
     return {
       set1Finished,
@@ -1445,18 +1928,8 @@ function PlayerQRPage() {
     }
 
     const [eventRes, courtRes, matchRes] = await Promise.all([
-      supabase
-        .from("events")
-        .select("title")
-        .eq("id", eventId)
-        .single(),
-
-      supabase
-        .from("courts")
-        .select("name")
-        .eq("id", courtId)
-        .single(),
-
+      supabase.from("events").select("title").eq("id", eventId).single(),
+      supabase.from("courts").select("name").eq("id", courtId).single(),
       supabase
         .from("matches")
         .select("*")
@@ -1505,10 +1978,11 @@ function PlayerQRPage() {
       return;
     }
 
-setMatch(prev => ({
-  ...prev,
-  ...payload
-}));  }
+    setMatch((prev) => ({
+      ...prev,
+      ...payload,
+    }));
+  }
 
   function plus(field) {
     if (!match) return;
@@ -1641,13 +2115,8 @@ setMatch(prev => ({
       return "Match abgeschlossen.";
     }
 
-    if (!state.set1Finished) {
-      return "Aktuell: Satz 1";
-    }
-
-    if (!state.set2Finished) {
-      return "Aktuell: Satz 2";
-    }
+    if (!state.set1Finished) return "Aktuell: Satz 1";
+    if (!state.set2Finished) return "Aktuell: Satz 2";
 
     if (state.needsMatchTiebreak) {
       return "Aktuell: Match-Tiebreak bis 10 mit 2 Punkten Vorsprung";
@@ -1662,10 +2131,11 @@ setMatch(prev => ({
     const state = getMatchScoreState(match);
 
     if (match.status === "finished" || state.matchFinished) return true;
-
     if (setNumber === 1) return state.set1Finished;
     if (setNumber === 2) return !state.set1Finished || state.set2Finished;
-    if (setNumber === 3) return !state.set1Finished || !state.set2Finished || !state.needsMatchTiebreak;
+    if (setNumber === 3) {
+      return !state.set1Finished || !state.set2Finished || !state.needsMatchTiebreak;
+    }
 
     return true;
   }
@@ -1801,6 +2271,7 @@ setMatch(prev => ({
     </div>
   );
 }
+
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
 
@@ -1864,12 +2335,10 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
               break-after: page !important;
               page-break-inside: avoid !important;
               break-inside: avoid !important;
-
               display: flex !important;
               flex-direction: column !important;
               justify-content: center !important;
               align-items: center !important;
-
               border: none !important;
               border-radius: 0 !important;
               background: white !important;
@@ -1973,6 +2442,7 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
     </>
   );
 }
+
 function PageShell({ children }) {
   return <div style={styles.pageCentered}>{children}</div>;
 }
@@ -2011,7 +2481,9 @@ function EventSelect({ events, selectedEvent, setSelectedEvent, setEditorDirty, 
     >
       <option value="">Event wählen</option>
       {events.map((e) => (
-        <option key={e.id} value={String(e.id)}>{eventName(e)}</option>
+        <option key={e.id} value={String(e.id)}>
+          {eventName(e)}
+        </option>
       ))}
     </select>
   );
@@ -2019,10 +2491,16 @@ function EventSelect({ events, selectedEvent, setSelectedEvent, setEditorDirty, 
 
 function CourtSelect({ courts, selectedCourt, setSelectedCourt, courtName }) {
   return (
-    <select value={String(selectedCourt || "")} onChange={(e) => setSelectedCourt(String(e.target.value))} style={styles.input}>
+    <select
+      value={String(selectedCourt || "")}
+      onChange={(e) => setSelectedCourt(String(e.target.value))}
+      style={styles.input}
+    >
       <option value="">Court wählen</option>
       {courts.map((c) => (
-        <option key={c.id} value={String(c.id)}>{courtName(c)}</option>
+        <option key={c.id} value={String(c.id)}>
+          {courtName(c)}
+        </option>
       ))}
     </select>
   );
@@ -2032,14 +2510,26 @@ function ColorField({ label, value, onChange }) {
   return (
     <div>
       <div style={styles.colorLabel}>{label}</div>
-      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} style={styles.colorInput} />
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={styles.colorInput}
+      />
     </div>
   );
 }
 
 function StatusPill({ children, color }) {
   return (
-    <div style={{ ...styles.statusPill, color, borderColor: hexToRgba(color, 0.45), background: hexToRgba(color, 0.08) }}>
+    <div
+      style={{
+        ...styles.statusPill,
+        color,
+        borderColor: hexToRgba(color, 0.45),
+        background: hexToRgba(color, 0.08),
+      }}
+    >
       {children}
     </div>
   );
@@ -2049,7 +2539,17 @@ function InfoBox({ children }) {
   return <div style={styles.infoBox}>{children}</div>;
 }
 
-function ScoreCard({ title, leftLabel, rightLabel, leftValue, rightValue, onLeftPlus, onLeftMinus, onRightPlus, onRightMinus }) {
+function ScoreCard({
+  title,
+  leftLabel,
+  rightLabel,
+  leftValue,
+  rightValue,
+  onLeftPlus,
+  onLeftMinus,
+  onRightPlus,
+  onRightMinus,
+}) {
   return (
     <div style={styles.scoreCard}>
       <div style={styles.scoreCardTitle}>{title}</div>
@@ -2064,9 +2564,13 @@ function PlayerRow({ label, value, onPlus, onMinus }) {
     <div style={{ marginBottom: 16 }}>
       <div style={{ marginBottom: 8, fontWeight: "bold" }}>{label}</div>
       <div style={styles.playerRowControls}>
-        <button type="button" onClick={onMinus} style={scoreButtonStyle()}>−</button>
+        <button type="button" onClick={onMinus} style={scoreButtonStyle()}>
+          −
+        </button>
         <div style={styles.scoreNumber}>{value}</div>
-        <button type="button" onClick={onPlus} style={scoreButtonStyle()}>+</button>
+        <button type="button" onClick={onPlus} style={scoreButtonStyle()}>
+          +
+        </button>
       </div>
     </div>
   );
@@ -2436,11 +2940,5 @@ const styles = {
     marginTop: 14,
     fontWeight: 800,
     fontSize: 14,
-  },
-  qrSmallUrl: {
-    marginTop: 10,
-    fontSize: 10,
-    wordBreak: "break-all",
-    opacity: 0.75,
   },
 };
