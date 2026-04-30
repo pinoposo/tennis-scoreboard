@@ -2312,7 +2312,7 @@ function LandingPage() {
         <section style={styles.panel}>
           <h2 style={styles.panelCardTitle}>Turnierstände live. Ohne Zettelwirtschaft.</h2>
           <p style={{ ...styles.muted, fontSize: 18, lineHeight: 1.6 }}>
-            Spieler scannen am Platz mit ihrem Handy einen QR-Code und tragen den Live-Spielstand ein.
+            Spieler scannen am Platz mit ihrem Handy einen QR-Code und tragen den Live-Spielstand beim Seitenwechsel ein.
             Zuschauer sehen alle Courts live auf dem zentralen Monitor im Clubheim oder auf der Terrasse. Die Turnierleitung steuert Events,
             Courts, Matches, Logos und Farben zentral im Admin-Tool.
           </p>
