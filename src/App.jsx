@@ -2350,25 +2350,45 @@ function LandingPage() {
           </div>
         </section>
 
-        <section style={styles.panel}>
-          <h2 style={styles.panelCardTitle}>Preisstruktur</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 20 }}>
-            {[
-              ["Basic", "49 €", "Ein Turnier, bis 4 Courts, QR-Codes und Live-Monitor."],
-              ["Club", "99 €", "Ein Turnier, bis 10 Courts, Branding, Druckfunktion und Support."],
-              ["Saison", "249 €", "Mehrere Events im Jahr, Vereins-Branding und bevorzugter Support."],
-            ].map(([name, price, text]) => (
-              <div key={name} style={{ ...styles.panel, background: "rgba(18,30,61,0.92)" }}>
-                <h3 style={{ margin: 0, fontSize: 26 }}>{name}</h3>
-                <div style={{ fontSize: 38, fontWeight: 900, marginTop: 14, color: "#6be7ff" }}>
-                  {price}
-                </div>
-                <p style={{ ...styles.muted, lineHeight: 1.6 }}>{text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+<section style={styles.panel}>
+  <h2 style={styles.panelCardTitle}>Preisstruktur</h2>
 
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 20 }}>
+    {[
+      ["Basic", "20 €", "Ein Turnier, unbegrenzte Courts, QR-Codes inkl. Druckfunktion, Live-Monitor und Vereinslogo."],
+      ["Sommersaison", "99 €", "April bis September, unbegrenzte Turniere, alle Funktionen inkl. Branding und Live-Monitor."],
+      ["Jahreslizenz", "149 €", "Ganzjähriger Zugriff auf alle Funktionen, unbegrenzte Turniere und voller Branding-Zugriff."]
+    ].map(([name, price, text]) => (
+      <div
+        key={name}
+        style={{
+          ...styles.panel,
+          background: "rgba(18,30,61,0.92)",
+          padding: 20,
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.1)"
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: 26 }}>{name}</h3>
+
+        <div
+          style={{
+            fontSize: 38,
+            fontWeight: 900,
+            marginTop: 14,
+            color: "#6be7ff"
+          }}
+        >
+          {price}
+        </div>
+
+        <p style={{ ...styles.muted, marginTop: 12, lineHeight: 1.6 }}>
+          {text}
+        </p>
+      </div>
+    ))}
+  </div>
+</section>
         <section style={{ ...styles.panel, textAlign: "center" }}>
           <h2 style={styles.panelCardTitle}>Bereit für dein nächstes Turnier?</h2>
           <p style={{ ...styles.muted, fontSize: 18 }}>
