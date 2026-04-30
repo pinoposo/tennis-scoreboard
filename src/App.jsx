@@ -110,7 +110,7 @@ export default function App() {
   useEffect(() => {
     if (!profile) return;
 
-    if (profile.role === "admin") {
+    if (profile.role === "admin" || profile.role === "super_admin") {
       loadAdminData();
       loadPendingUsers();
     }
@@ -1096,7 +1096,7 @@ export default function App() {
     );
   }
 
-  if (profile.role === "admin") {
+  if (profile.role === "admin" || profile.role === "super_admin") {
     return (
       <div style={styles.page}>
         <header style={styles.hero}>
