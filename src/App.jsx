@@ -2284,22 +2284,106 @@ function PlayerQRPage() {
 
 function LandingPage() {
   return (
-    <div style={styles.pageCentered}>
-      <div style={{ ...styles.authCard, maxWidth: 800 }}>
-        <div style={styles.authKicker}>LIVE TENNIS CONTROL</div>
-        <h1 style={styles.authTitle}>Live Tennis Scoreboard</h1>
-        <p style={styles.muted}>
-          Digitale Spielstandsanzeige für Tennisturniere, QR-Code Eingabe je Court und Live-Monitor.
-        </p>
+    <div style={styles.page}>
+      <header style={styles.hero}>
+        <div style={styles.heroLeft}>
+          <div style={styles.logoFallback}>TS</div>
+          <div>
+            <div style={styles.kicker}>LIVE TENNIS CONTROL</div>
+            <h1 style={styles.heroTitle}>Live Scoreboard für Tennisturniere</h1>
+            <div style={styles.heroSub}>
+              Digitale Spielstandsanzeige, QR-Code Eingabe je Court und Live-Monitor für Zuschauer.
+            </div>
+          </div>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => (window.location.href = "/admin")}
-          style={styles.primaryButtonFull}
-        >
-          Zum Login
-        </button>
-      </div>
+        <div style={styles.heroRight}>
+          <button
+            type="button"
+            onClick={() => (window.location.href = "/admin")}
+            style={styles.primaryButton}
+          >
+            Zum Login
+          </button>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1180, margin: "28px auto", display: "grid", gap: 22 }}>
+        <section style={styles.panel}>
+          <h2 style={styles.panelCardTitle}>Turnierstände live. Ohne Zettelwirtschaft.</h2>
+          <p style={{ ...styles.muted, fontSize: 18, lineHeight: 1.6 }}>
+            Spieler scannen am Platz einen QR-Code und tragen den Spielstand ein.
+            Zuschauer sehen alle Courts live auf dem Monitor. Die Turnierleitung steuert Events,
+            Courts, Matches, Logos und Farben zentral im Admin-Panel.
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 22 }}>
+            {[
+              ["QR je Court", "Spieler erfassen Ergebnisse direkt am Platz."],
+              ["Live-Monitor", "Alle Matches übersichtlich für Zuschauer."],
+              ["Branding", "Logo, Farben und Sponsorentext je Event."],
+              ["Druckfunktion", "QR-Codes sauber als A4 Seiten drucken."],
+            ].map(([title, text]) => (
+              <div key={title} style={styles.matchItem}>
+                <h3 style={{ margin: 0, fontSize: 20 }}>{title}</h3>
+                <p style={{ ...styles.muted, lineHeight: 1.5 }}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={styles.panel}>
+          <h2 style={styles.panelCardTitle}>Für wen ist das System?</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginTop: 18 }}>
+            {[
+              "Vereinsturniere",
+              "LK-Turniere",
+              "Clubmeisterschaften",
+              "Mannschaftsspiele",
+              "Tagesturniere",
+              "Sponsor-Events",
+            ].map((item) => (
+              <div key={item} style={styles.emptyText}>
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={styles.panel}>
+          <h2 style={styles.panelCardTitle}>Preisstruktur</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginTop: 20 }}>
+            {[
+              ["Basic", "49 €", "Ein Turnier, bis 4 Courts, QR-Codes und Live-Monitor."],
+              ["Club", "99 €", "Ein Turnier, bis 10 Courts, Branding, Druckfunktion und Support."],
+              ["Saison", "249 €", "Mehrere Events im Jahr, Vereins-Branding und bevorzugter Support."],
+            ].map(([name, price, text]) => (
+              <div key={name} style={{ ...styles.panel, background: "rgba(18,30,61,0.92)" }}>
+                <h3 style={{ margin: 0, fontSize: 26 }}>{name}</h3>
+                <div style={{ fontSize: 38, fontWeight: 900, marginTop: 14, color: "#6be7ff" }}>
+                  {price}
+                </div>
+                <p style={{ ...styles.muted, lineHeight: 1.6 }}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={{ ...styles.panel, textAlign: "center" }}>
+          <h2 style={styles.panelCardTitle}>Bereit für dein nächstes Turnier?</h2>
+          <p style={{ ...styles.muted, fontSize: 18 }}>
+            Starte mit deinem eigenen Event-Setup und Live-Scoreboard.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => (window.location.href = "/admin")}
+            style={{ ...styles.primaryButton, marginTop: 16, fontSize: 18 }}
+          >
+            Zum Login / Adminbereich
+          </button>
+        </section>
+      </main>
     </div>
   );
 }
