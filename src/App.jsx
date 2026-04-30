@@ -2282,6 +2282,28 @@ function PlayerQRPage() {
   );
 }
 
+function LandingPage() {
+  return (
+    <div style={styles.pageCentered}>
+      <div style={{ ...styles.authCard, maxWidth: 800 }}>
+        <div style={styles.authKicker}>LIVE TENNIS CONTROL</div>
+        <h1 style={styles.authTitle}>Live Tennis Scoreboard</h1>
+        <p style={styles.muted}>
+          Digitale Spielstandsanzeige für Tennisturniere, QR-Code Eingabe je Court und Live-Monitor.
+        </p>
+
+        <button
+          type="button"
+          onClick={() => (window.location.href = "/admin")}
+          style={styles.primaryButtonFull}
+        >
+          Zum Login
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
 
