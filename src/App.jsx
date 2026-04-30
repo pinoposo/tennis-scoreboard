@@ -2289,7 +2289,7 @@ function LandingPage() {
         <div style={styles.heroLeft}>
           <div style={styles.logoFallback}>TS</div>
           <div>
-            <div style={styles.kicker}>LIVE TENNIS CONTROL</div>
+            <div style={styles.kicker}>GP23 Sport präsentiert</div>
             <h1 style={styles.heroTitle}>Live Scoreboard für Tennisturniere</h1>
             <div style={styles.heroSub}>
               Digitale Spielstandsanzeige, QR-Code Eingabe je Court und Live-Monitor für Zuschauer.
