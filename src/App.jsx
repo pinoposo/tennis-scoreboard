@@ -953,17 +953,25 @@ export default function App() {
 
   const headerLogo = selectedBrandingObj?.logo_url;
 
-  if (window.location.pathname === "/player") {
-    return <PlayerQRPage />;
-  }
+if (window.location.pathname === "/player") {
+  return <PlayerQRPage />;
+}
 
-  if (!authReady) {
-    return (
-      <PageShell>
-        <LoginCard title="Lade Login..." />
-      </PageShell>
-    );
-  }
+if (window.location.pathname === "/") {
+  return <LandingPage />;
+}
+
+if (window.location.pathname !== "/admin") {
+  return <LandingPage />;
+}
+
+if (!authReady) {
+  return (
+    <PageShell>
+      <LoginCard title="Lade Login..." />
+    </PageShell>
+  );
+}
 
   if (!session) {
     return (
