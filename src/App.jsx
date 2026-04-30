@@ -1317,6 +1317,7 @@ export default function App() {
             </aside>
 
             <section style={styles.rightColumn}>
+              {profile.role === "super_admin" && (
               <Panel title="Freigaben" subtitle="Neue Registrierungen freischalten">
                 {pendingUsers.length === 0 ? (
                   <div style={styles.emptyText}>Keine offenen Anfragen</div>
@@ -1356,6 +1357,7 @@ export default function App() {
                   </div>
                 )}
               </Panel>
+)}
 
               <Panel title="Admin Branding Editor" subtitle="Look & Feel des Monitors steuern">
                 <div style={styles.editorGrid}>
