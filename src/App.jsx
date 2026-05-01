@@ -694,6 +694,27 @@ export default function App() {
     setPlayerB("");
     await loadAdminData();
   }
+async function finishMatch(matchId) {
+  if (!matchId) return;
+
+  setSaving(true);
+  setMessage("");
+
+  const { error } = await supabase
+    .from("matches")
+    .update({ status: "finished" })
+    .eq("id", matchId);
+
+  setSaving(false);
+
+  if (error) {
+    setMessage(`Fehler beim Beenden des Matches: ${error.message}`);
+    return;
+  }
+
+  setMessage("Match wurde beendet.");
+  await loadAdminData();
+}
 
   async function assignPlayer() {
     if (!selectedPlayer || !selectedEvent || !selectedCourt) {
@@ -1691,6 +1712,16 @@ if (!authReady) {
                               {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB{" "}
                               {m.set3_a ?? 0}:{m.set3_b ?? 0}
                             </div>
+                            {m.status !== "finished" && (
+  <button
+    type="button"
+    onClick={() => finishMatch(m.id)}
+    style={{ ...styles.primaryButton, marginTop: 10 }}
+    disabled={saving}
+  >
+    Match beenden
+  </button>
+)}
                           </div>
                         );
                       })}
