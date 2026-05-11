@@ -3170,6 +3170,8 @@ const styles = {
   playerRowControls: { display: "flex", alignItems: "center", justifyContent: "center", gap: 10 },
   scoreNumber: { minWidth: 70, padding: "12px 16px", borderRadius: 12, background: "rgba(0,0,0,0.22)", fontSize: 28, fontWeight: 900, color: "#6be7ff" },
   qrPanel: {
+    maxWidth: 1180,
+margin: "14px auto 0",
     marginTop: 14,
     borderRadius: 20,
     background: "rgba(6,15,38,0.82)",
@@ -3183,11 +3185,13 @@ const styles = {
     alignItems: "center",
     marginBottom: 18,
   },
-  qrGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-    gap: 18,
-  },
+qrGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 320px))",
+  justifyContent: "center",
+  gap: 22,
+  marginTop: 22,
+},
   qrCard: {
     background: "#ffffff",
     color: "#061226",
