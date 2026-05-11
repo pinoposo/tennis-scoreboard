@@ -2454,22 +2454,24 @@ function CourtViewPage() {
 
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
+
   useEffect(() => {
-  const cleanup = () => {
-    document.body.classList.remove("print-player");
-    document.body.classList.remove("print-court");
-  };
+    const cleanup = () => {
+      document.body.classList.remove("print-player");
+      document.body.classList.remove("print-court");
+    };
 
-  window.addEventListener("afterprint", cleanup);
-  return () => window.removeEventListener("afterprint", cleanup);
-}, []);
+    window.addEventListener("afterprint", cleanup);
+    return () => window.removeEventListener("afterprint", cleanup);
+  }, []);
 
-  const buildUrl = (courtId) => {
+  const buildPlayerUrl = (courtId) => {
     return `${baseUrl}/player?event=${eventId}&court=${courtId}`;
   };
-const buildCourtUrl = (courtId) => {
-  return `${baseUrl}/court?event=${eventId}&court=${courtId}`;
-};
+
+  const buildCourtUrl = (courtId) => {
+    return `${baseUrl}/court?event=${eventId}&court=${courtId}`;
+  };
 
   if (!eventId) {
     return (
@@ -2485,12 +2487,6 @@ const buildCourtUrl = (courtId) => {
       <style>
         {`
           @media print {
-            body {
-              background: white !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
             body * {
               visibility: hidden !important;
             }
@@ -2507,11 +2503,17 @@ const buildCourtUrl = (courtId) => {
               width: 100% !important;
               background: white !important;
               color: black !important;
-              padding: 0 !important;
-              margin: 0 !important;
             }
 
             .qr-print-header {
+              display: none !important;
+            }
+
+            body.print-player .qr-court-card {
+              display: none !important;
+            }
+
+            body.print-court .qr-player-card {
               display: none !important;
             }
 
@@ -2541,17 +2543,9 @@ const buildCourtUrl = (courtId) => {
               text-align: center !important;
             }
 
-            .qr-print-card:last-child {
-              page-break-after: auto !important;
-              break-after: auto !important;
-            }
-
-            .qr-print-event {
-              display: block !important;
-              font-size: 22pt !important;
-              font-weight: 700 !important;
-              margin-bottom: 12mm !important;
-              color: black !important;
+            .qr-print-card svg {
+              width: 95mm !important;
+              height: 95mm !important;
             }
 
             .qr-print-card h3 {
@@ -2559,11 +2553,6 @@ const buildCourtUrl = (courtId) => {
               font-weight: 900 !important;
               margin: 0 0 18mm 0 !important;
               color: black !important;
-            }
-
-            .qr-print-card svg {
-              width: 95mm !important;
-              height: 95mm !important;
             }
 
             .qr-print-text {
@@ -2580,13 +2569,6 @@ const buildCourtUrl = (courtId) => {
               color: #333 !important;
             }
 
-            body.print-player .qr-court-card {
-  display: none !important;
-}
-
-body.print-court .qr-player-card {
-  display: none !important;
-}
             @page {
               size: A4 portrait;
               margin: 10mm;
@@ -2602,109 +2584,74 @@ body.print-court .qr-player-card {
             <div style={styles.panelCardSub}>{eventTitle}</div>
           </div>
 
-<div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-  <button
-    type="button"
-    onClick={() => {
-      document.body.classList.add("print-player");
-      window.print();
-    }}
-    style={styles.primaryButton}
-  >
-    Spieler-QR drucken
-  </button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => {
+                document.body.classList.add("print-player");
+                window.print();
+              }}
+              style={styles.primaryButton}
+            >
+              Spieler-QR drucken
+            </button>
 
-  <button
-    type="button"
-    onClick={() => {
-      document.body.classList.add("print-court");
-      window.print();
-    }}
-    style={styles.primaryButton}
-  >
-    Zuschauer-QR drucken
-  </button>
-</div> 
-</div>
+            <button
+              type="button"
+              onClick={() => {
+                document.body.classList.add("print-court");
+                window.print();
+              }}
+              style={styles.primaryButton}
+            >
+              Zuschauer-QR drucken
+            </button>
+          </div>
+        </div>
+
         <div className="qr-print-grid" style={styles.qrGrid}>
-{courts.map((court) => (
-  <div key={court.id}>
-    <div
-      className="qr-print-card qr-player-card"
-      style={styles.qrCard}
-    >
-      <div
-        className="qr-print-event"
-        style={{ display: "none" }}
-      >
-        {eventTitle}
-      </div>
+          {courts.map((court) => (
+            <div key={court.id}>
+              <div className="qr-print-card qr-player-card" style={styles.qrCard}>
+                <h3 style={styles.qrCourtName}>{court.name}</h3>
 
-      <h3 style={styles.qrCourtName}>
-        {court.name}
-      </h3>
+                <QRCodeSVG
+                  value={buildPlayerUrl(court.id)}
+                  size={230}
+                  level="H"
+                  includeMargin
+                />
 
-      <QRCodeSVG
-        value={buildUrl(court.id)}
-        size={230}
-        level="H"
-        includeMargin
-      />
+                <div className="qr-print-text" style={styles.qrText}>
+                  Spieler-Login
+                </div>
 
-      <div
-        className="qr-print-text"
-        style={styles.qrText}
-      >
-        Spieler-Login
-      </div>
+                <div className="qr-print-hint" style={{ display: "none" }}>
+                  QR-Code scannen und Spielstand für diesen Platz eintragen
+                </div>
+              </div>
 
-      <div
-        className="qr-print-hint"
-        style={{ display: "none" }}
-      >
-        QR-Code scannen und Spielstand für diesen Platz eintragen
-      </div>
-    </div>
+              <div className="qr-print-card qr-court-card" style={styles.qrCard}>
+                <h3 style={styles.qrCourtName}>{court.name}</h3>
 
-    <div
-      className="qr-print-card qr-court-card"
-      style={styles.qrCard}
-    >
-      <div
-        className="qr-print-event"
-        style={{ display: "none" }}
-      >
-        {eventTitle}
-      </div>
+                <QRCodeSVG
+                  value={buildCourtUrl(court.id)}
+                  size={230}
+                  level="H"
+                  includeMargin
+                />
 
-      <h3 style={styles.qrCourtName}>
-        {court.name}
-      </h3>
+                <div className="qr-print-text" style={styles.qrText}>
+                  Zuschauer-Ansicht
+                </div>
 
-      <QRCodeSVG
-        value={buildCourtUrl(court.id)}
-        size={230}
-        level="H"
-        includeMargin
-      />
-
-      <div
-        className="qr-print-text"
-        style={styles.qrText}
-      >
-        Zuschauer-Ansicht
-      </div>
-
-      <div
-        className="qr-print-hint"
-        style={{ display: "none" }}
-      >
-        QR-Code scannen und Live-Spielstand dieses Courts ansehen
-      </div>
-    </div>
-  </div>
-))}    
-</div>   
+                <div className="qr-print-hint" style={{ display: "none" }}>
+                  QR-Code scannen und Live-Spielstand dieses Courts ansehen
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </>
   );
