@@ -2625,7 +2625,7 @@ body.print-court .qr-player-card {
     Zuschauer-QR drucken
   </button>
 </div> 
-
+</div>
         <div className="qr-print-grid" style={styles.qrGrid}>
 {courts.map((court) => (
   <div key={court.id}>
@@ -2703,8 +2703,8 @@ body.print-court .qr-player-card {
       </div>
     </div>
   </div>
-))}        </div>
-</div>
+))}    
+</div>   
       </section>
     </>
   );
