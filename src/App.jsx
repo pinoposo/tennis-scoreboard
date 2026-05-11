@@ -977,7 +977,9 @@ async function finishMatch(matchId) {
 if (window.location.pathname === "/player") {
   return <PlayerQRPage />;
 }
-
+if (window.location.pathname === "/court") {
+  return <CourtViewPage />;
+}
 if (window.location.pathname === "/") {
   return <LandingPage />;
 }
@@ -2439,12 +2441,35 @@ function LandingPage() {
   );
 }
 
+function CourtViewPage() {
+  return (
+    <div style={styles.pageCentered}>
+      <div style={styles.authCardWide}>
+        <h1 style={styles.authTitle}>Court Live Ansicht</h1>
+        <p style={styles.muted}>Zuschaueransicht für diesen Court.</p>
+      </div>
+    </div>
+  );
+}
+
 function QRPrintPanel({ eventId, eventTitle, courts }) {
   const baseUrl = window.location.origin;
+  useEffect(() => {
+  const cleanup = () => {
+    document.body.classList.remove("print-player");
+    document.body.classList.remove("print-court");
+  };
+
+  window.addEventListener("afterprint", cleanup);
+  return () => window.removeEventListener("afterprint", cleanup);
+}, []);
 
   const buildUrl = (courtId) => {
     return `${baseUrl}/player?event=${eventId}&court=${courtId}`;
   };
+const buildCourtUrl = (courtId) => {
+  return `${baseUrl}/court?event=${eventId}&court=${courtId}`;
+};
 
   if (!eventId) {
     return (
@@ -2555,6 +2580,13 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
               color: #333 !important;
             }
 
+            body.print-player .qr-court-card {
+  display: none !important;
+}
+
+body.print-court .qr-player-card {
+  display: none !important;
+}
             @page {
               size: A4 portrait;
               margin: 10mm;
@@ -2570,41 +2602,108 @@ function QRPrintPanel({ eventId, eventTitle, courts }) {
             <div style={styles.panelCardSub}>{eventTitle}</div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            style={styles.primaryButton}
-          >
-            QR-Codes drucken
-          </button>
-        </div>
+<div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+  <button
+    type="button"
+    onClick={() => {
+      document.body.classList.add("print-player");
+      window.print();
+    }}
+    style={styles.primaryButton}
+  >
+    Spieler-QR drucken
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      document.body.classList.add("print-court");
+      window.print();
+    }}
+    style={styles.primaryButton}
+  >
+    Zuschauer-QR drucken
+  </button>
+</div> 
 
         <div className="qr-print-grid" style={styles.qrGrid}>
-          {courts.map((court) => (
-            <div key={court.id} className="qr-print-card" style={styles.qrCard}>
-              <div className="qr-print-event" style={{ display: "none" }}>
-                {eventTitle}
-              </div>
+{courts.map((court) => (
+  <div key={court.id}>
+    <div
+      className="qr-print-card qr-player-card"
+      style={styles.qrCard}
+    >
+      <div
+        className="qr-print-event"
+        style={{ display: "none" }}
+      >
+        {eventTitle}
+      </div>
 
-              <h3 style={styles.qrCourtName}>{court.name}</h3>
+      <h3 style={styles.qrCourtName}>
+        {court.name}
+      </h3>
 
-              <QRCodeSVG
-                value={buildUrl(court.id)}
-                size={230}
-                level="H"
-                includeMargin
-              />
+      <QRCodeSVG
+        value={buildUrl(court.id)}
+        size={230}
+        level="H"
+        includeMargin
+      />
 
-              <div className="qr-print-text" style={styles.qrText}>
-                Spieler-Login
-              </div>
+      <div
+        className="qr-print-text"
+        style={styles.qrText}
+      >
+        Spieler-Login
+      </div>
 
-              <div className="qr-print-hint" style={{ display: "none" }}>
-                QR-Code scannen und Spielstand für diesen Platz eintragen
-              </div>
-            </div>
-          ))}
-        </div>
+      <div
+        className="qr-print-hint"
+        style={{ display: "none" }}
+      >
+        QR-Code scannen und Spielstand für diesen Platz eintragen
+      </div>
+    </div>
+
+    <div
+      className="qr-print-card qr-court-card"
+      style={styles.qrCard}
+    >
+      <div
+        className="qr-print-event"
+        style={{ display: "none" }}
+      >
+        {eventTitle}
+      </div>
+
+      <h3 style={styles.qrCourtName}>
+        {court.name}
+      </h3>
+
+      <QRCodeSVG
+        value={buildCourtUrl(court.id)}
+        size={230}
+        level="H"
+        includeMargin
+      />
+
+      <div
+        className="qr-print-text"
+        style={styles.qrText}
+      >
+        Zuschauer-Ansicht
+      </div>
+
+      <div
+        className="qr-print-hint"
+        style={{ display: "none" }}
+      >
+        QR-Code scannen und Live-Spielstand dieses Courts ansehen
+      </div>
+    </div>
+  </div>
+))}        </div>
       </section>
     </>
   );
