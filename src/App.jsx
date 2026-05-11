@@ -2704,6 +2704,7 @@ body.print-court .qr-player-card {
     </div>
   </div>
 ))}        </div>
+</div>
       </section>
     </>
   );
