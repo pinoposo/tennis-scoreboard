@@ -1225,19 +1225,7 @@ if (!authReady) {
           <main style={styles.adminGrid}>
             <aside style={styles.leftColumn}>
               <Panel title="Event erstellen" subtitle="Neues Turnier mit Courts anlegen">
-                <FormLabel>Organisation</FormLabel>
-                <select
-                  value={String(selectedOrganization || "")}
-                  onChange={(e) => setSelectedOrganization(String(e.target.value))}
-                  style={styles.input}
-                >
-                  <option value="">Organisation wählen</option>
-                  {organizations.map((org) => (
-                    <option key={org.id} value={String(org.id)}>
-                      {organizationName(org)}
-                    </option>
-                  ))}
-                </select>
+        
 
                 <FormLabel>Neuer Turniername</FormLabel>
                 <input
@@ -1402,22 +1390,6 @@ if (!authReady) {
                       eventName={eventName}
                     />
 
-                    <FormLabel>Organisation</FormLabel>
-                    <select
-                      value={String(selectedOrganization || "")}
-                      onChange={(e) => {
-                        setEditorDirty(true);
-                        setSelectedOrganization(String(e.target.value));
-                      }}
-                      style={styles.input}
-                    >
-                      <option value="">Organisation wählen</option>
-                      {organizations.map((org) => (
-                        <option key={org.id} value={String(org.id)}>
-                          {organizationName(org)}
-                        </option>
-                      ))}
-                    </select>
 
                     <FormLabel>Turniername</FormLabel>
                     <input
