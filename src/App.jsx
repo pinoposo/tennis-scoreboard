@@ -2025,6 +2025,15 @@ function PlayerQRPage() {
   const [loadingMatch, setLoadingMatch] = useState(true);
   const [playerMessage, setPlayerMessage] = useState("");
   const [savingScore, setSavingScore] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+const [editScore, setEditScore] = useState({
+  set1_a: 0,
+  set1_b: 0,
+  set2_a: 0,
+  set2_b: 0,
+  set3_a: 0,
+  set3_b: 0,
+});
 
   useEffect(() => {
     loadPlayerPageData();
@@ -2154,6 +2163,45 @@ function PlayerQRPage() {
       ...payload,
     }));
   }
+async function saveScoreCorrection() {
+  if (!match) return;
+
+  setSavingScore(true);
+  setPlayerMessage("");
+
+  const payload = {
+    set1_a: Number(editScore.set1_a || 0),
+    set1_b: Number(editScore.set1_b || 0),
+    set2_a: Number(editScore.set2_a || 0),
+    set2_b: Number(editScore.set2_b || 0),
+    set3_a: Number(editScore.set3_a || 0),
+    set3_b: Number(editScore.set3_b || 0),
+    status: "live",
+  };
+
+  const { error } = await supabase
+    .from("matches")
+    .update(payload)
+    .eq("id", match.id);
+
+  setSavingScore(false);
+
+  if (error) {
+    setPlayerMessage(
+      `Fehler beim Korrigieren: ${error.message}`
+    );
+    return;
+  }
+
+  setMatch((prev) => ({
+    ...prev,
+    ...payload,
+  }));
+
+  setEditMode(false);
+
+  setPlayerMessage("Spielstand korrigiert.");
+}
 
   function plus(field) {
     if (!match) return;
@@ -2296,20 +2344,9 @@ function PlayerQRPage() {
     return "Match abgeschlossen.";
   }
 
-  function isScoreCardLocked(setNumber) {
-    if (!match) return true;
-
-    const state = getMatchScoreState(match);
-
-    if (match.status === "finished" || state.matchFinished) return true;
-    if (setNumber === 1) return state.set1Finished;
-    if (setNumber === 2) return !state.set1Finished || state.set2Finished;
-    if (setNumber === 3) {
-      return !state.set1Finished || !state.set2Finished || !state.needsMatchTiebreak;
-    }
-
-    return true;
-  }
+function isScoreCardLocked(setNumber) {
+  return false;
+}
 
   return (
     <div style={styles.pageCentered}>
