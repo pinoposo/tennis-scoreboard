@@ -769,6 +769,49 @@ async function deleteAllMatchesForEvent() {
   setMessage("Alle Matches dieses Events wurden gelöscht.");
   await loadAdminData();
 }
+async function deleteEvent(eventId) {
+  if (!eventId) return;
+
+  const ok = window.confirm(
+    "Wirklich dieses komplette Event löschen? Alle Matches, Branding- und Zuweisungsdaten werden entfernt."
+  );
+
+  if (!ok) return;
+
+  setSaving(true);
+  setMessage("");
+
+  try {
+    await supabase
+      .from("player_assignments")
+      .delete()
+      .eq("event_id", eventId);
+
+    await supabase
+      .from("matches")
+      .delete()
+      .eq("event_id", eventId);
+
+    await supabase
+      .from("branding_settings")
+      .delete()
+      .eq("event_id", eventId);
+
+    await supabase
+      .from("events")
+      .delete()
+      .eq("id", eventId);
+
+    setMessage("Event wurde gelöscht.");
+
+    setSelectedEvent("");
+    await loadAdminData();
+  } catch (err) {
+    setMessage("Fehler beim Löschen des Events.");
+  }
+
+  setSaving(false);
+}
   async function assignPlayer() {
     if (!selectedPlayer || !selectedEvent || !selectedCourt) {
       setMessage("Bitte Player, Event und Court auswählen.");
@@ -1336,6 +1379,24 @@ if (!authReady) {
                   setEditorDirty={setEditorDirty}
                   eventName={eventName}
                 />
+                <button
+  type="button"
+  onClick={() => deleteEvent(selectedEvent)}
+  style={{
+    background: "#b00020",
+    color: "#fff",
+    border: "none",
+    padding: "12px 16px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 700,
+    marginTop: 12,
+    marginBottom: 18,
+  }}
+  disabled={!selectedEvent || saving}
+>
+  Event komplett löschen
+</button>
 
                 <FormLabel>Court</FormLabel>
                 <CourtSelect
