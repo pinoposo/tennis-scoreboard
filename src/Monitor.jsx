@@ -176,9 +176,9 @@ const theme = useMemo(() => {
                 LIVE TENNIS CONTROL
             </div>
 
-            <h1 style={styles.heroTitle}>{theme.title}</h1>
+            <h1 style={{ ...styles.heroTitle, color: theme.text }}>{theme.title}</h1>
 
-            <div style={styles.heroSub}>{theme.subtitle}</div>
+            <div style={{ ...styles.heroSub, color: theme.text }}>{theme.subtitle}</div>
           </div>
         </div>
 
@@ -224,7 +224,7 @@ const theme = useMemo(() => {
       <main style={styles.mainPanel}>
         <div style={styles.panelHeader}>
           <div>
-            <h2 style={styles.panelTitle}>Aktive Courts</h2>
+            <h2 style={{ ...styles.panelTitle, color: theme.text }}>Aktive Courts</h2>
             <div style={styles.panelSub}>
               
             </div>
@@ -232,7 +232,7 @@ const theme = useMemo(() => {
         </div>
 
         {sortedMatches.length === 0 ? (
-          <div style={styles.empty}>Keine Matches vorhanden.</div>
+          <div style={{ ...styles.empty, color: theme.text }}>Keine Matches vorhanden.</div>
         ) : (
           <div style={styles.grid}>
             {sortedMatches.map((m) => (
@@ -405,7 +405,7 @@ function activeButton(color) {
   return {
     background: hexToRgba(color, 0.22),
     borderColor: color,
-    color: "#ffffff",
+    color: theme.text,
     boxShadow: `0 0 18px ${hexToRgba(color, 0.35)}`,
   };
 }
@@ -478,7 +478,7 @@ const styles = {
     lineHeight: 1,
     fontWeight: 900,
     letterSpacing: 0.5,
-    color: "#ffffff",
+    color: theme.text,
   },
 
   heroSub: {
@@ -550,7 +550,7 @@ const styles = {
     margin: 0,
     fontSize: 30,
     fontWeight: 900,
-    color: "#ffffff",
+    color: theme.text,
   },
 
   panelSub: {
@@ -603,7 +603,7 @@ const styles = {
     fontWeight: 900,
     marginBottom: 8,
     textAlign: "center",
-    color: "#ffffff",
+    color: theme.text,
   },
 
   vs: {
@@ -639,7 +639,7 @@ const styles = {
     padding: "14px 12px",
     fontWeight: 900,
     borderBottom: "1px solid rgba(255,255,255,0.06)",
-    color: "#ffffff",
+    color: theme.text,
   },
 
   tdScore: {
@@ -648,7 +648,7 @@ const styles = {
     fontSize: 22,
     fontWeight: 900,
     borderBottom: "1px solid rgba(255,255,255,0.06)",
-    color: "#ffffff",
+    color: theme.text,
   },
 
   empty: {
