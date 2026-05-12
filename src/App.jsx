@@ -1713,35 +1713,35 @@ if (!authReady) {
                               {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB{" "}
                               {m.set3_a ?? 0}:{m.set3_b ?? 0}
                             </div>
+                            
 {m.status !== "finished" && (
-  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-    <button
-      type="button"
-      onClick={() => finishMatch(m.id)}
-      style={{ ...styles.primaryButton }}
-      disabled={saving}
-    >
-      Match beenden
-    </button>
-
-    <button
-      type="button"
-      onClick={() => deleteMatch(m.id)}
-      style={{
-        background: "#ff4d4f",
-        color: "#fff",
-        border: "none",
-        padding: "10px 14px",
-        borderRadius: 10,
-        cursor: "pointer",
-        fontWeight: 700,
-      }}
-      disabled={saving}
-    >
-      Match löschen
-    </button>
-  </div>
+  <button
+    type="button"
+    onClick={() => finishMatch(m.id)}
+    style={{ ...styles.primaryButton }}
+    disabled={saving}
+  >
+    Match beenden
+  </button>
 )}
+
+<button
+  type="button"
+  onClick={() => deleteMatch(m.id)}
+  style={{
+    background: "#ff4d4f",
+    color: "#fff",
+    border: "none",
+    padding: "10px 14px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 700,
+    marginTop: 10,
+  }}
+  disabled={saving}
+>
+  Match löschen
+</button>
 
                           </div>
                         );
