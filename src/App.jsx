@@ -2412,8 +2412,66 @@ function LandingPage() {
             Zum Login / Adminbereich
           </button>
         </section>
-      </main>
+        <section style={styles.section}>
+  <h2 style={styles.sectionTitle}>Kontakt</h2>
+
+  <div style={styles.contactBox}>
+    <div style={styles.contactLine}>
+      <strong>GP23 Sport</strong>
     </div>
+
+    <div style={styles.contactLine}>
+      Giuseppe Poso
+    </div>
+
+    <div style={styles.contactLine}>
+      Grüneburgweg 113
+    </div>
+
+    <div style={styles.contactLine}>
+      60323 Frankfurt am Main
+    </div>
+
+    <div style={styles.contactLine}>
+      Mobil: 0170 / 8395700
+    </div>
+
+    <div style={styles.contactLine}>
+      E-Mail: info@gp23-sport.de
+    </div>
+  </div>
+</section>
+
+<section style={styles.section}>
+  <h2 style={styles.sectionTitle}>Impressum</h2>
+
+  <div style={styles.impressumBox}>
+    <p>Angaben gemäß § 5 TMG</p>
+
+    <p>
+      GP23 Sport<br />
+      Giuseppe Poso<br />
+      Grüneburgweg 113<br />
+      60323 Frankfurt am Main
+    </p>
+
+    <p>
+      Kontakt:<br />
+      Mobil: 0170 / 8395700<br />
+      E-Mail: info@gp23-sport.de
+    </p>
+
+    <p>
+      Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:<br />
+      Giuseppe Poso<br />
+      Grüneburgweg 113<br />
+      60323 Frankfurt am Main
+    </p>
+  </div>
+</section>
+
+</main>
+</div>
   );
 }
 
@@ -3135,4 +3193,37 @@ qrGrid: {
     fontWeight: 800,
     fontSize: 14,
   },
+  section: {
+  marginTop: 24,
+  borderRadius: 20,
+  padding: 24,
+  background: "rgba(6,15,38,0.88)",
+  border: "1px solid rgba(255,255,255,0.08)",
+},
+
+sectionTitle: {
+  margin: 0,
+  marginBottom: 20,
+  fontSize: 42,
+  fontWeight: 900,
+  color: "#ffffff",
+},
+
+contactBox: {
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+  fontSize: 20,
+  color: "#dfe8ff",
+},
+
+contactLine: {
+  lineHeight: 1.5,
+},
+
+impressumBox: {
+  fontSize: 18,
+  lineHeight: 1.8,
+  color: "#dfe8ff",
+},
 };
