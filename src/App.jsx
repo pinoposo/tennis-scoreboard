@@ -2292,7 +2292,11 @@ function LandingPage() {
     <div style={styles.page}>
       <header style={styles.hero}>
         <div style={styles.heroLeft}>
-          <div style={styles.logoFallback}>TS</div>
+          <img
+  src="/logo.png"
+  alt="Logo"
+  style={styles.logo}
+/>
           <div>
             <div style={styles.kicker}>GP23 Sport präsentiert</div>
             <h1 style={styles.heroTitle}>Live Scoreboard für Tennisturniere</h1>
