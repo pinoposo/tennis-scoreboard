@@ -715,7 +715,30 @@ async function finishMatch(matchId) {
   setMessage("Match wurde beendet.");
   await loadAdminData();
 }
+async function deleteMatch(matchId) {
+  if (!matchId) return;
 
+  const ok = window.confirm("Dieses Match wirklich löschen?");
+  if (!ok) return;
+
+  setSaving(true);
+  setMessage("");
+
+  const { error } = await supabase
+    .from("matches")
+    .delete()
+    .eq("id", matchId);
+
+  setSaving(false);
+
+  if (error) {
+    setMessage(`Fehler beim Löschen des Matches: ${error.message}`);
+    return;
+  }
+
+  setMessage("Match wurde gelöscht.");
+  await loadAdminData();
+}
   async function assignPlayer() {
     if (!selectedPlayer || !selectedEvent || !selectedCourt) {
       setMessage("Bitte Player, Event und Court auswählen.");
@@ -1690,16 +1713,36 @@ if (!authReady) {
                               {m.set2_a ?? 0}:{m.set2_b ?? 0} · MTB{" "}
                               {m.set3_a ?? 0}:{m.set3_b ?? 0}
                             </div>
-                            {m.status !== "finished" && (
-  <button
-    type="button"
-    onClick={() => finishMatch(m.id)}
-    style={{ ...styles.primaryButton, marginTop: 10 }}
-    disabled={saving}
-  >
-    Match beenden
-  </button>
+{m.status !== "finished" && (
+  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+    <button
+      type="button"
+      onClick={() => finishMatch(m.id)}
+      style={{ ...styles.primaryButton }}
+      disabled={saving}
+    >
+      Match beenden
+    </button>
+
+    <button
+      type="button"
+      onClick={() => deleteMatch(m.id)}
+      style={{
+        background: "#ff4d4f",
+        color: "#fff",
+        border: "none",
+        padding: "10px 14px",
+        borderRadius: 10,
+        cursor: "pointer",
+        fontWeight: 700,
+      }}
+      disabled={saving}
+    >
+      Match löschen
+    </button>
+  </div>
 )}
+
                           </div>
                         );
                       })}
