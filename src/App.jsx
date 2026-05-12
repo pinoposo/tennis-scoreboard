@@ -2824,7 +2824,7 @@ const styles = {
     boxSizing: "border-box",
   },
   hero: {
-    minHeight: 118,
+    minHeight: 240,
     padding: "18px 22px",
     borderRadius: 22,
     background: "linear-gradient(135deg, rgba(4,12,31,0.96), rgba(7,20,48,0.96))",
@@ -2837,13 +2837,13 @@ const styles = {
   },
   heroLeft: { display: "flex", alignItems: "center", gap: 18 },
   logo: {
-    width: 86,
-    height: 86,
-    borderRadius: 18,
+    width: 220,
+    height: 220,
+    borderRadius: 20,
     objectFit: "contain",
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255,255,255,0.14)",
-    padding: 6,
+    padding: 8,
   },
   logoFallback: {
     width: 86,
