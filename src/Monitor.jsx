@@ -118,24 +118,25 @@ export default function Monitor() {
     }
   }
 
-  const theme = useMemo(() => {
-    return {
-      bg: branding?.background_color || "#06152f",
-      text: branding?.text_color || "#ffffff",
-      muted: "#b9c8e6",
-      cyan: branding?.border_color || "#6be7ff",
-      green: "#00ff9d",
-      red: "#ff6b7a",
-      yellow: "#ffd166",
-      logo: branding?.logo_url || null,
-      title: eventData?.title || branding?.monitor_title || "LIVE SCOREBOARD",
-      subtitle:
-        branding?.monitor_subtitle ||
-        "Live Scoreboard · Echtzeit Monitor · Turniersteuerung",
-      sponsor: branding?.sponsor_text || "GP23 Sport · Tennis Scoreboard",
+const theme = useMemo(() => {
+  return {
+    bg: branding?.background_color || "#06152f",
+    text: branding?.text_color || "#ffffff",
+    primary: branding?.primary_color || "#00ff9d",
+    accent: branding?.accent_color || "#6be7ff",
+    muted: "#b9c8e6",
+    cyan: branding?.border_color || "#6be7ff",
+    green: "#00ff9d",
+    red: "#ff6b7a",
+    yellow: "#ffd166",
+    logo: branding?.logo_url || null,
+    title: eventData?.title || branding?.monitor_title || "LIVE SCOREBOARD",
+    subtitle:
+      branding?.monitor_subtitle ||
+      "Live Scoreboard · Echtzeit Monitor · Turniersteuerung",
+    sponsor: branding?.sponsor_text || "GP23 Sport · Tennis Scoreboard",
     };
-  }, [branding, eventData]);
-
+}, [branding, eventData]);
   const sortedMatches = useMemo(() => {
     const order = { live: 0, planned: 1, finished: 2 };
     let list = [...matches];
@@ -171,8 +172,8 @@ export default function Monitor() {
           )}
 
           <div>
-            <div style={{ ...styles.kicker, color: theme.green }}>
-              LIVE TENNIS CONTROL
+<div style={{ ...styles.kicker, color: theme.primary }}>
+                LIVE TENNIS CONTROL
             </div>
 
             <h1 style={styles.heroTitle}>{theme.title}</h1>
@@ -183,7 +184,7 @@ export default function Monitor() {
 
         <div style={styles.heroRight}>
           <StatusPill color={theme.red}>Verbindung prüfen</StatusPill>
-          <StatusPill color={theme.green}>Turnierleitung</StatusPill>
+<StatusPill color={theme.accent}>Turnierleitung</StatusPill>
           <StatusPill color={theme.text}>{formatTime(now)}</StatusPill>
         </div>
       </header>
