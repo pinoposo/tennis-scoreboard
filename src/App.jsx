@@ -739,6 +739,36 @@ async function deleteMatch(matchId) {
   setMessage("Match wurde gelöscht.");
   await loadAdminData();
 }
+async function deleteAllMatchesForEvent() {
+  if (!selectedEvent) {
+    setMessage("Bitte zuerst ein Event auswählen.");
+    return;
+  }
+
+  const ok = window.confirm(
+    "Wirklich ALLE Matches dieses Events löschen? Diese Aktion kann nicht rückgängig gemacht werden."
+  );
+
+  if (!ok) return;
+
+  setSaving(true);
+  setMessage("");
+
+  const { error } = await supabase
+    .from("matches")
+    .delete()
+    .eq("event_id", selectedEvent);
+
+  setSaving(false);
+
+  if (error) {
+    setMessage(`Fehler beim Löschen aller Matches: ${error.message}`);
+    return;
+  }
+
+  setMessage("Alle Matches dieses Events wurden gelöscht.");
+  await loadAdminData();
+}
   async function assignPlayer() {
     if (!selectedPlayer || !selectedEvent || !selectedCourt) {
       setMessage("Bitte Player, Event und Court auswählen.");
@@ -1687,6 +1717,24 @@ if (!authReady) {
                 </Panel>
 
                 <Panel title="Vorhandene Matches" subtitle="Aktueller Stand des Events">
+                  <div style={{ marginBottom: 16 }}>
+  <button
+    type="button"
+    onClick={deleteAllMatchesForEvent}
+    style={{
+      background: "#ff4d4f",
+      color: "#fff",
+      border: "none",
+      padding: "12px 16px",
+      borderRadius: 10,
+      cursor: "pointer",
+      fontWeight: 700,
+    }}
+    disabled={saving || !selectedEvent}
+  >
+    Alle Matches dieses Events löschen
+  </button>
+</div>
                   {filteredMatchesByEvent.length === 0 ? (
                     <div style={styles.emptyText}>
                       Keine Matches für dieses Event vorhanden.
