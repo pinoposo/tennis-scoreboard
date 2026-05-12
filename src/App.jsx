@@ -974,6 +974,10 @@ async function finishMatch(matchId) {
 
   const headerLogo = selectedBrandingObj?.logo_url;
 
+if (window.location.pathname === "/datenschutz") {
+  return <PrivacyPage />;
+}
+
 if (window.location.pathname === "/player") {
   return <PlayerQRPage />;
 }
@@ -2421,7 +2425,7 @@ function LandingPage() {
     </div>
 
     <div style={styles.contactLine}>
-      Giuseppe Poso
+      Giuseppe Pino Poso
     </div>
 
     <div style={styles.contactLine}>
@@ -2450,7 +2454,7 @@ function LandingPage() {
 
     <p>
       GP23 Sport<br />
-      Giuseppe Poso<br />
+      Inhaber: Giuseppe Poso<br />
       Grüneburgweg 113<br />
       60323 Frankfurt am Main
     </p>
@@ -2462,16 +2466,115 @@ function LandingPage() {
     </p>
 
     <p>
-      Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:<br />
+      Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:<br />
       Giuseppe Poso<br />
       Grüneburgweg 113<br />
       60323 Frankfurt am Main
     </p>
   </div>
+<button
+  type="button"
+  onClick={() => (window.location.href = "/datenschutz")}
+  style={{ ...styles.primaryButton, marginTop: 16 }}
+>
+  Datenschutzerklärung
+</button>
+
 </section>
 
 </main>
 </div>
+  );
+}
+
+function PrivacyPage() {
+  return (
+    <div style={styles.page}>
+      <main style={{ maxWidth: 1100, margin: "28px auto", padding: 20 }}>
+        <section style={styles.section}>
+          <h1 style={styles.sectionTitle}>Datenschutzerklärung</h1>
+
+          <div style={styles.impressumBox}>
+            <p>
+              Verantwortlicher für die Datenverarbeitung auf dieser Website ist:
+            </p>
+
+            <p>
+              GP23 Sport<br />
+              Giuseppe Poso<br />
+              Grüneburgweg 113<br />
+              60323 Frankfurt am Main<br />
+              Deutschland
+            </p>
+
+            <p>
+              Telefon: 0170 / 8395700<br />
+              E-Mail: info@gp23-sport.de
+            </p>
+
+            <h3>1. Allgemeine Hinweise</h3>
+            <p>
+              Der Schutz Ihrer personenbezogenen Daten ist uns wichtig. Personenbezogene Daten werden nur verarbeitet,
+              soweit dies zur Bereitstellung dieser Website, zur Kontaktaufnahme oder zur Nutzung des Live-Scoreboard-Systems erforderlich ist.
+            </p>
+
+            <h3>2. Hosting</h3>
+            <p>
+              Diese Website wird über Vercel bereitgestellt. Beim Aufruf der Website können technische Zugriffsdaten
+              wie IP-Adresse, Zeitpunkt des Zugriffs, Browsertyp und aufgerufene Seiten verarbeitet werden.
+              Die Verarbeitung erfolgt zur sicheren und stabilen Bereitstellung des Online-Angebots.
+            </p>
+
+            <h3>3. Nutzung des Live-Scoreboard-Systems</h3>
+            <p>
+              Bei der Nutzung des Systems können Daten wie Name, E-Mail-Adresse, Rolle, Turnierdaten, Matchdaten,
+              Court-Zuordnungen und Spielstände verarbeitet werden. Diese Daten dienen der Durchführung und Anzeige
+              von Tennisturnieren.
+            </p>
+
+            <h3>4. Kontaktaufnahme</h3>
+            <p>
+              Wenn Sie uns per E-Mail oder Telefon kontaktieren, verarbeiten wir die von Ihnen angegebenen Daten,
+              um Ihre Anfrage zu beantworten.
+            </p>
+
+            <h3>5. Rechtsgrundlagen</h3>
+            <p>
+              Die Verarbeitung erfolgt je nach Zweck auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO
+              zur Durchführung vorvertraglicher oder vertraglicher Maßnahmen, Art. 6 Abs. 1 lit. f DSGVO
+              auf Grundlage berechtigter Interessen an einem sicheren und funktionsfähigen Online-Angebot
+              sowie ggf. Art. 6 Abs. 1 lit. a DSGVO bei erteilter Einwilligung.
+            </p>
+
+            <h3>6. Speicherdauer</h3>
+            <p>
+              Personenbezogene Daten werden nur so lange gespeichert, wie dies für den jeweiligen Zweck erforderlich ist
+              oder gesetzliche Aufbewahrungspflichten bestehen.
+            </p>
+
+            <h3>7. Ihre Rechte</h3>
+            <p>
+              Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung,
+              Datenübertragbarkeit sowie Widerspruch gegen bestimmte Verarbeitungen. Zudem haben Sie das Recht,
+              sich bei einer zuständigen Datenschutzaufsichtsbehörde zu beschweren.
+            </p>
+
+            <h3>8. Keine automatisierte Entscheidungsfindung</h3>
+            <p>
+              Eine automatisierte Entscheidungsfindung oder ein Profiling findet nicht statt.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => (window.location.href = "/")}
+              style={{ ...styles.primaryButton, marginTop: 20 }}
+            >
+              Zurück zur Startseite
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
 
