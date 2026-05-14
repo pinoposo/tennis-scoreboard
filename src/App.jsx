@@ -2768,11 +2768,128 @@ function PrivacyPage() {
 }
 
 function CourtViewPage() {
+  const params = new URLSearchParams(window.location.search);
+  const eventId = params.get("event");
+  const courtId = params.get("court");
+
+  const [match, setMatch] = useState(null);
+  const [eventName, setEventName] = useState("");
+  const [courtName, setCourtName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    loadCourtViewData();
+    const timer = setInterval(loadCourtViewData, 4000);
+    return () => clearInterval(timer);
+  }, [eventId, courtId]);
+
+  async function loadCourtViewData() {
+    if (!eventId || !courtId) {
+      setMessage("Event oder Court fehlt im QR-Code.");
+      setLoading(false);
+      return;
+    }
+
+    const [eventRes, courtRes, matchRes] = await Promise.all([
+      supabase.from("events").select("title").eq("id", eventId).single(),
+      supabase.from("courts").select("name").eq("id", courtId).single(),
+      supabase
+        .from("matches")
+        .select("*")
+        .eq("event_id", eventId)
+        .eq("court_id", courtId)
+        .in("status", ["live", "planned"])
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+    setEventName(eventRes.data?.title || "");
+    setCourtName(courtRes.data?.name || "");
+
+    if (matchRes.error) {
+      setMessage(`Fehler beim Laden: ${matchRes.error.message}`);
+      setLoading(false);
+      return;
+    }
+
+    setMatch(matchRes.data?.[0] || null);
+    setLoading(false);
+  }
+
+  if (loading) {
+    return (
+      <div style={styles.pageCentered}>
+        <div style={styles.authCardWide}>
+          <h1 style={styles.authTitle}>Lade Court...</h1>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.pageCentered}>
       <div style={styles.authCardWide}>
-        <h1 style={styles.authTitle}>Court Live Ansicht</h1>
-        <p style={styles.muted}>Zuschaueransicht für diesen Court.</p>
+        <div style={styles.authKicker}>LIVE COURT VIEW</div>
+
+        <h1 style={styles.authTitle}>
+          {courtName || "Court"}
+        </h1>
+
+        <p style={styles.muted}>
+          {eventName || "Turnier"} · Zuschaueransicht
+        </p>
+
+        {message && (
+          <div style={{ ...styles.emptyText, marginTop: 18 }}>
+            {message}
+          </div>
+        )}
+
+        {!match ? (
+          <div style={{ ...styles.emptyText, marginTop: 24 }}>
+            Auf diesem Court ist aktuell kein Match vorhanden.
+          </div>
+        ) : (
+          <div style={{ marginTop: 26 }}>
+            <h2 style={{ margin: 0, fontSize: 32 }}>
+              {match.player_a || "Spieler A"} vs {match.player_b || "Spieler B"}
+            </h2>
+
+            <div style={{ ...styles.muted, marginTop: 10 }}>
+              Status: {match.status || "-"} · Modus: {match.mode || "Einzel"}
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.5fr repeat(3, 1fr)",
+                gap: 10,
+                marginTop: 24,
+                alignItems: "center",
+              }}
+            >
+              <div></div>
+              <strong>Satz 1</strong>
+              <strong>Satz 2</strong>
+              <strong>MTB</strong>
+
+              <strong>{match.player_a || "Spieler A"}</strong>
+              <div style={styles.scoreNumber}>{match.set1_a ?? 0}</div>
+              <div style={styles.scoreNumber}>{match.set2_a ?? 0}</div>
+              <div style={styles.scoreNumber}>{match.set3_a ?? 0}</div>
+
+              <strong>{match.player_b || "Spieler B"}</strong>
+              <div style={styles.scoreNumber}>{match.set1_b ?? 0}</div>
+              <div style={styles.scoreNumber}>{match.set2_b ?? 0}</div>
+              <div style={styles.scoreNumber}>{match.set3_b ?? 0}</div>
+            </div>
+
+            <div style={{ ...styles.muted, marginTop: 24 }}>
+              Aktualisiert automatisch alle 4 Sekunden.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
