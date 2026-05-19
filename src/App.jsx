@@ -2176,14 +2176,25 @@ async function saveScoreCorrection() {
         return;
       }
 
-      if (field === "set1_a") s1a += 1;
-      if (field === "set1_b") s1b += 1;
+if (field === "set1_a") s1a += 1;
+if (field === "set1_b") s1b += 1;
 
-      return updateMatch({
-        set1_a: s1a,
-        set1_b: s1b,
-        status: "live",
-      });
+if (isSetFinished(s1a, s1b)) {
+  const ok = window.confirm(
+    `Satz 1 wirklich mit ${s1a}:${s1b} abschließen?`
+  );
+
+  if (!ok) {
+    setPlayerMessage("Eingabe abgebrochen. Bitte Spielstand korrigieren.");
+    return;
+  }
+}
+
+return updateMatch({
+  set1_a: s1a,
+  set1_b: s1b,
+  status: "live",
+});
     }
 
     if (!stateBefore.set2Finished) {
@@ -2201,13 +2212,26 @@ async function saveScoreCorrection() {
         set2_b: s2b,
       };
 
-      const stateAfter = getMatchScoreState(tempMatch);
+const stateAfter = getMatchScoreState(tempMatch);
 
-      return updateMatch({
-        set2_a: s2a,
-        set2_b: s2b,
-        status: stateAfter.matchWonAfterTwoSets ? "finished" : "live",
-      });
+if (stateAfter.set2Finished) {
+  const ok = window.confirm(
+    stateAfter.matchWonAfterTwoSets
+      ? `Match wirklich nach Satz 2 mit ${s1a}:${s1b}, ${s2a}:${s2b} abschließen?`
+      : `Satz 2 wirklich mit ${s2a}:${s2b} abschließen?`
+  );
+
+  if (!ok) {
+    setPlayerMessage("Eingabe abgebrochen. Bitte Spielstand korrigieren.");
+    return;
+  }
+}
+
+return updateMatch({
+  set2_a: s2a,
+  set2_b: s2b,
+  status: stateAfter.matchWonAfterTwoSets ? "finished" : "live",
+});
     }
 
     const stateAfterTwoSets = getMatchScoreState({
@@ -2232,13 +2256,24 @@ async function saveScoreCorrection() {
     if (field === "set3_a") s3a += 1;
     if (field === "set3_b") s3b += 1;
 
-    const mtbFinished = isMatchTiebreakFinished(s3a, s3b);
+const mtbFinished = isMatchTiebreakFinished(s3a, s3b);
 
-    return updateMatch({
-      set3_a: s3a,
-      set3_b: s3b,
-      status: mtbFinished ? "finished" : "live",
-    });
+if (mtbFinished) {
+  const ok = window.confirm(
+    `Match-Tiebreak wirklich mit ${s3a}:${s3b} abschließen?`
+  );
+
+  if (!ok) {
+    setPlayerMessage("Eingabe abgebrochen. Bitte Spielstand korrigieren.");
+    return;
+  }
+}
+
+return updateMatch({
+  set3_a: s3a,
+  set3_b: s3b,
+  status: mtbFinished ? "finished" : "live",
+});
   }
 
   function minus(field) {
