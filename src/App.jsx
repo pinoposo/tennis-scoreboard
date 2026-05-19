@@ -1726,56 +1726,6 @@ if (!authReady) {
               </Panel>
 
               <div style={styles.bottomGrid}>
-                <Panel title="Player zuweisen" subtitle="Player-Zugang an Court koppeln">
-                  <FormLabel>Player</FormLabel>
-                  <select
-                    value={selectedPlayer}
-                    onChange={(e) => setSelectedPlayer(e.target.value)}
-                    style={styles.input}
-                  >
-                    <option value="">Player wählen</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.full_name || p.email || p.id}
-                      </option>
-                    ))}
-                  </select>
-
-                  <FormLabel>Event</FormLabel>
-                  <EventSelect
-                    events={events}
-                    selectedEvent={selectedEvent}
-                    setSelectedEvent={setSelectedEvent}
-                    setEditorDirty={setEditorDirty}
-                    eventName={eventName}
-                  />
-
-                  <FormLabel>Court</FormLabel>
-                  <CourtSelect
-                    courts={filteredCourts}
-                    selectedCourt={selectedCourt}
-                    setSelectedCourt={setSelectedCourt}
-                    courtName={courtName}
-                  />
-
-                  <div style={styles.selectionNote}>
-                    <div>
-                      <strong>Event:</strong> {eventName(selectedEventObj)}
-                    </div>
-                    <div>
-                      <strong>Court:</strong> {courtName(selectedCourtObj)}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={assignPlayer}
-                    style={styles.primaryButtonFull}
-                    disabled={saving}
-                  >
-                    {saving ? "Speichern..." : "Player zuweisen"}
-                  </button>
-                </Panel>
 
                 <Panel title="Vorhandene Matches" subtitle="Aktueller Stand des Events">
                   <div style={{ marginBottom: 16 }}>
